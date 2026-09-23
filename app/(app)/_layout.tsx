@@ -25,6 +25,7 @@ export default function AppLayout() {
       }}
     >
       <Drawer.Screen name="dashboard" options={{ title: "Tableau de bord" }} />
+      <Drawer.Screen name="company-settings" options={{ title: "Mon entreprise" }} />
       <Drawer.Screen name="pdca/index" options={{ title: "PDCA" }} />
       <Drawer.Screen name="pdca/new" options={{ title: "Nouveau PDCA" }} />
       <Drawer.Screen name="pdca/[id]" options={{ title: "Détail PDCA", drawerItemStyle: { display: "none" } }} />
