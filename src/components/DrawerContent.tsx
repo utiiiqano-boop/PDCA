@@ -4,7 +4,7 @@ import {
   DrawerContentScrollView,
   DrawerContentComponentProps,
 } from "@react-navigation/drawer";
-import { router, usePathname } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
 import { theme } from "@/theme";
 import { DEPARTMENTS } from "@/constants/options";
 
@@ -46,10 +46,24 @@ const SECTIONS: { title: string; items: Item[] }[] = [
 ];
 
 export function DrawerContent(props: DrawerContentComponentProps) {
+  const router = useRouter();
   const path = usePathname();
 
+  const handlePress = (href: string) => {
+    // 1) Navigate FIRST — expo-router handles this synchronously
+    router.push(href as never);
+    // 2) Close the drawer AFTER — the drawer closes during the transition
+    requestAnimationFrame(() => {
+      props.navigation.closeDrawer();
+    });
+  };
+
   return (
-    <DrawerContentScrollView {...props} contentContainerStyle={styles.wrap}>
+    <DrawerContentScrollView
+      {...props}
+      contentContainerStyle={styles.wrap}
+      scrollEnabled
+    >
       <Text style={styles.brand}>PDCA</Text>
       <Text style={styles.brandSub}>Gestion industrielle</Text>
 
@@ -61,17 +75,15 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             return (
               <Pressable
                 key={item.href}
-                onPress={() => {
-                  // Blur any focused element to prevent aria-hidden warnings on web
-                  if (typeof document !== "undefined" && document.activeElement) {
-                    (document.activeElement as HTMLElement).blur();
-                  }
-                  props.navigation.closeDrawer();
-                  router.push(item.href);
-                }}
+                onPress={() => handlePress(item.href)}
                 style={[styles.item, active && styles.itemActive]}
+                android_ripple={{ color: "#00000022" }}
+                hitSlop={{ top: 4, bottom: 4 }}
               >
-                <Text style={[styles.itemTxt, active && styles.itemTxtActive]}>
+                <Text
+                  style={[styles.itemTxt, active && styles.itemTxtActive]}
+                  numberOfLines={1}
+                >
                   {item.label}
                 </Text>
               </Pressable>
@@ -79,12 +91,15 @@ export function DrawerContent(props: DrawerContentComponentProps) {
           })}
         </View>
       ))}
+
+      {/* Bottom spacer so last items are always reachable */}
+      <View style={{ height: 32 }} />
     </DrawerContentScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 0 },
+  wrap: { padding: 0, paddingBottom: 24 },
   brand: {
     fontSize: 24,
     fontWeight: "800",
@@ -98,17 +113,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
   },
-  section: { marginBottom: 8 },
+  section: { marginBottom: 4 },
   sectionTitle: {
     fontSize: 11,
     fontWeight: "700",
     color: theme.colors.textMuted,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 12,
+    paddingBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
-  item: { paddingVertical: 12, paddingHorizontal: 16 },
+  item: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minHeight: 44,
+    justifyContent: "center",
+  },
   itemActive: {
     backgroundColor: theme.colors.primary + "15",
     borderLeftWidth: 3,
