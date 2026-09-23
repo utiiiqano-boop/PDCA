@@ -67,7 +67,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
                     (document.activeElement as HTMLElement).blur();
                   }
                   props.navigation.closeDrawer();
-                  // @ts-expect-error expo-router accepts string paths at runtime
                   router.push(item.href);
                 }}
                 style={[styles.item, active && styles.itemActive]}
