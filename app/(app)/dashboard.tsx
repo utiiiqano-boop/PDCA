@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Link } from "expo-router";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
 import { useAuth } from "@/hooks/useAuth";
+import { getCompany, CompanyRow } from "@/services/companiesService";
 import { registerForPushNotifications, PushStatus } from "@/services/pushService";
 import { theme } from "@/theme";
 
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const { profile, signOut } = useAuth();
   const [pushStatus, setPushStatus] = useState<PushStatus | null>(null);
   const [checkingPush, setCheckingPush] = useState(false);
+  const [company, setCompany] = useState<CompanyRow | null>(null);
   const [data, setData] = useState<PDCAWithActions[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +38,23 @@ export default function Dashboard() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.companyHeader}>
+        {company?.logo_url ? (
+          <Image source={{ uri: company.logo_url }} style={styles.companyLogo} />
+        ) : (
+          <View style={[styles.companyLogo, styles.companyLogoFallback]}>
+            <Text style={styles.companyLogoText}>
+              {(company?.name ?? "?").charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.companyName} numberOfLines={1}>
+            {company?.name ?? "Chargement…"}
+          </Text>
+          <Text style={styles.companySub}>Espace PDCA</Text>
+        </View>
+      </View>
       <Text style={styles.hello}>Bonjour {profile?.full_name ?? ""}</Text>
       <Text style={styles.sub}>Tableau de bord</Text>
 
@@ -101,6 +120,26 @@ function Stat({ n, l, danger }: { n: number; l: string; danger?: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  companyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  companyLogo: { width: 48, height: 48, borderRadius: 10 },
+  companyLogoFallback: {
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  companyLogoText: { color: "#fff", fontWeight: "800", fontSize: 22 },
+  companyName: { fontSize: 16, fontWeight: "800", color: theme.colors.text },
+  companySub: { fontSize: 12, color: theme.colors.textMuted },
   container: { padding: 16, backgroundColor: theme.colors.bg, flexGrow: 1 },
   hello: { fontSize: 22, fontWeight: "700", color: theme.colors.text },
   sub: { color: theme.colors.textMuted, marginBottom: 16 },

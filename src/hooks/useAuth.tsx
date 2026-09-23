@@ -13,6 +13,7 @@ interface AuthCtx {
     password: string,
     fullName: string,
     role: string,
+    companyName: string,
   ) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
@@ -64,16 +65,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     },
-    signUp: async (email, password, fullName, role) => {
+    signUp: async (email, password, fullName, role, companyName) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName, role },
+          data: {
+            full_name: fullName,
+            role,
+            company_name: companyName,
+          },
         },
       });
       if (error) throw error;
-      // If session exists → auto-confirm ON, user is logged in
       return { needsConfirmation: !data.session };
     },
     signOut: async () => {

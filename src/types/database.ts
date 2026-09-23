@@ -16,14 +16,14 @@ export type ActionStatus =
   | "OVERDUE";
 export type PDCAStatus = ActionStatus;
 
-// IMPORTANT: use `type`, not `interface`. Interfaces do NOT satisfy
-// Record<string, unknown>, which breaks supabase-js GenericTable constraints.
 export type ProfileRow = {
   id: string;
   full_name: string;
   email: string;
   role: string;
   department: string | null;
+  company_id: string | null;
+  expo_push_token: string | null;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -41,6 +41,7 @@ export type PDCARow = {
   priority: Priority;
   department: string | null;
   status: PDCAStatus;
+  company_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -57,6 +58,7 @@ export type PDCAActionRow = {
   phase: PDCAPhase;
   progress: number;
   status: ActionStatus;
+  company_id: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -70,6 +72,8 @@ export type PDCAHistoryRow = {
   event_type: string;
   old_value: string | null;
   new_value: string | null;
+  comment: string | null;
+  company_id: string | null;
   created_at: string;
 };
 
@@ -78,6 +82,12 @@ export type LessonLearnedRow = {
   pdca_id: string | null;
   title: string;
   description: string | null;
+  problem: string | null;
+  cause: string | null;
+  solution: string | null;
+  result: string | null;
+  standardization: string | null;
+  company_id: string | null;
   created_by: string | null;
   created_at: string;
 };
@@ -90,6 +100,7 @@ export type FactoryTourRow = {
   responsible_id: string | null;
   tour_date: string | null;
   status: string;
+  company_id: string | null;
   created_by: string | null;
   created_at: string;
 };
@@ -101,37 +112,31 @@ export type Database = {
         Row: ProfileRow;
         Insert: Partial<ProfileRow>;
         Update: Partial<ProfileRow>;
-
       };
       pdca: {
         Row: PDCARow;
         Insert: Partial<PDCARow>;
         Update: Partial<PDCARow>;
-
       };
       pdca_actions: {
         Row: PDCAActionRow;
         Insert: Partial<PDCAActionRow>;
         Update: Partial<PDCAActionRow>;
-
       };
       pdca_history: {
         Row: PDCAHistoryRow;
         Insert: Partial<PDCAHistoryRow>;
         Update: Partial<PDCAHistoryRow>;
-
       };
       lessons_learned: {
         Row: LessonLearnedRow;
         Insert: Partial<LessonLearnedRow>;
         Update: Partial<LessonLearnedRow>;
-
       };
       factory_tours: {
         Row: FactoryTourRow;
         Insert: Partial<FactoryTourRow>;
         Update: Partial<FactoryTourRow>;
-
       };
     };
     Views: { [_ in never]: never };

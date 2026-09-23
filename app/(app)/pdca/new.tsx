@@ -204,6 +204,7 @@ export default function NewPDCA() {
     created_at: "",
     updated_at: "",
     completed_at: null,
+    company_id: null,
   }));
 
   return (

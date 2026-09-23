@@ -286,7 +286,6 @@ export async function listPilotSummaries(): Promise<PilotSummary[]> {
 }
 
 export interface HistoryEntry extends PDCAHistoryRow {
-  comment?: string | null;
   pdca_reference: string | null;
 }
 
