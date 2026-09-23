@@ -23,6 +23,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#0f4c81"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Autoriser PDCA à accéder à vos photos pour le logo de l'entreprise.",
+          "cameraPermission": "Autoriser PDCA à utiliser l'appareil photo."
+        }
       ]
     ],
     "ios": {

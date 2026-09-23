@@ -35,14 +35,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Load all tokens (except the actor)
+    // 2. Load tokens of the SAME COMPANY only, except the actor
     let query = supabase
       .from("profiles")
       .select("id, expo_push_token")
+      .eq("company_id", notif.company_id)         // ← FILTRE ENTREPRISE
       .not("expo_push_token", "is", null);
+
     if (notif.actor_id) {
       query = query.neq("id", notif.actor_id);
     }
+
     const { data: profiles, error: pErr } = await query;
     if (pErr) {
       return new Response(JSON.stringify({ error: pErr.message }), {
@@ -71,11 +74,11 @@ Deno.serve(async (req) => {
         .from("notifications")
         .update({
           dispatched_at: new Date().toISOString(),
-          dispatch_note: "no recipients",
+          dispatch_note: "no recipients in same company",
         })
         .eq("id", notification_id);
       return new Response(
-        JSON.stringify({ sent: 0, reason: "no recipients" }),
+        JSON.stringify({ sent: 0, reason: "no recipients in same company" }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }
