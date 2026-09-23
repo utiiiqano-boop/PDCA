@@ -61,6 +61,13 @@ export default function LoginScreen() {
         {err ? <Text style={styles.err}>{err}</Text> : null}
 
         <Button label="Se connecter" onPress={onSubmit} loading={loading} />
+
+        <Text
+          style={styles.link}
+          onPress={() => router.push("/(auth)/signup")}
+        >
+          Créer un compte
+        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -86,4 +93,11 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   err: { color: theme.colors.danger, marginBottom: 12, textAlign: "center" },
+  link: {
+    color: theme.colors.primary,
+    textAlign: "center",
+    marginTop: 20,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
 });

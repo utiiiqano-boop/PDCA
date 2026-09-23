@@ -8,6 +8,12 @@ interface AuthCtx {
   profile: ProfileRow | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+    role: string,
+  ) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -38,7 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!session?.user) { setProfile(null); return; }
+    if (!session?.user) {
+      setProfile(null);
+      return;
+    }
     supabase
       .from("profiles")
       .select("*")
@@ -48,12 +57,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session?.user?.id]);
 
   const value: AuthCtx = {
-    session, profile, loading,
+    session,
+    profile,
+    loading,
     signIn: async (email, password) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     },
-    signOut: async () => { await supabase.auth.signOut(); },
+    signUp: async (email, password, fullName, role) => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName, role },
+        },
+      });
+      if (error) throw error;
+      // If session exists → auto-confirm ON, user is logged in
+      return { needsConfirmation: !data.session };
+    },
+    signOut: async () => {
+      await supabase.auth.signOut();
+    },
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
