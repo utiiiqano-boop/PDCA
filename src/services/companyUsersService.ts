@@ -46,3 +46,52 @@ export async function sendPasswordReset(email: string): Promise<void> {
   });
   if (error) throw error;
 }
+
+// ---------------------------------------------------------------------------
+// Admin : création de comptes
+// ---------------------------------------------------------------------------
+
+export interface CreateCompanyUserInput {
+  email: string;
+  fullName: string;
+  role: string;
+  isAdmin: boolean;
+}
+
+export interface CreateCompanyUserResult {
+  id: string;
+  email: string;
+  tempPassword: string;
+}
+
+export async function createCompanyUser(
+  input: CreateCompanyUserInput,
+): Promise<CreateCompanyUserResult> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Session expirée, reconnectez-vous.");
+
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error("Configuration manquante.");
+
+  const res = await fetch(`${url}/functions/v1/create-company-user`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({
+      email: input.email,
+      full_name: input.fullName,
+      role: input.role,
+      is_admin: input.isAdmin,
+    }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "Erreur de création.");
+  return {
+    id: json.id,
+    email: json.email,
+    tempPassword: json.temp_password,
+  };
+}

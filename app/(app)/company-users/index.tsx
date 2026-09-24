@@ -16,6 +16,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useUI } from "@/ui/UIProvider";
+import { CreateUserModal } from "@/components/CreateUserModal";
 import {
   listCompanyUsers,
   setUserAdmin,
@@ -39,6 +40,7 @@ export default function CompanyUsersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const load = useCallback(async () => {
     if (!companyId) return;
@@ -155,6 +157,13 @@ export default function CompanyUsersScreen() {
         </Text>
       </View>
 
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <Button
+          label="+ Nouveau compte"
+          onPress={() => setShowCreate(true)}
+        />
+      </View>
+
       {users.length === 0 ? (
         <EmptyState title="Aucun utilisateur" />
       ) : (
@@ -235,6 +244,11 @@ export default function CompanyUsersScreen() {
           }}
         />
       )}
+          <CreateUserModal
+        visible={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreated={load}
+      />
     </View>
   );
 }
