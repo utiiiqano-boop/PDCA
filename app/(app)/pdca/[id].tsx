@@ -10,6 +10,7 @@ import { EditActionModal } from "@/components/EditActionModal";
 import { PhaseCompleteModal } from "@/components/PhaseCompleteModal";
 import { CancelActionModal } from "@/components/CancelActionModal";
 import { ActionPhotos } from "@/components/ActionPhotos";
+import { SignatureView } from "@/components/SignatureView";
 import {
   getPDCA,
   cancelPDCA,
@@ -18,15 +19,25 @@ import {
   applyPhaseChange,
   PDCAWithActions,
 } from "@/services/pdcaService";
+import {
+  saveActionSignature,
+  getActionSignature,
+} from "@/services/signatureService";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/ui/UIProvider";
-import type { PDCAPhase, PDCAActionRow } from "@/types/database";
+import type {
+  PDCAPhase,
+  PDCAActionRow,
+  ActionSignatureRow,
+  SignaturePoint,
+} from "@/types/database";
 import { theme } from "@/theme";
 
 export default function PDCADetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const { alert, confirm, toast } = useUI();
+
   const [item, setItem] = useState<PDCAWithActions | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +45,9 @@ export default function PDCADetail() {
   const [editingAction, setEditingAction] = useState<PDCAActionRow | null>(null);
   const [completingAction, setCompletingAction] = useState<PDCAActionRow | null>(null);
   const [cancellingAction, setCancellingAction] = useState<PDCAActionRow | null>(null);
+  const [signatureByAction, setSignatureByAction] = useState<
+    Record<string, ActionSignatureRow>
+  >({});
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -53,9 +67,32 @@ export default function PDCADetail() {
     })();
   }, [load]);
 
+  // Load signatures whenever the item changes
+  useEffect(() => {
+    if (!item) return;
+    let cancelled = false;
+    (async () => {
+      const map: Record<string, ActionSignatureRow> = {};
+      for (const a of item.pdca_actions) {
+        try {
+          const s = await getActionSignature(a.id);
+          if (s) map[a.id] = s;
+        } catch {
+          // ignore
+        }
+      }
+      if (!cancelled) setSignatureByAction(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [item]);
+
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
   if (!item) return <ErrorState message="PDCA introuvable." />;
+
+  const signerName = profile?.full_name ?? "Utilisateur";
 
   const handlePhaseChange = (action: PDCAActionRow, next: PDCAPhase) => {
     if (next === "A") {
@@ -63,7 +100,6 @@ export default function PDCADetail() {
       return;
     }
     if (next === action.phase) return;
-    // Simple phase change (P → D, D → C)
     if (!session?.user) return;
     applyPhaseChange({
       actionId: action.id,
@@ -77,7 +113,23 @@ export default function PDCADetail() {
       );
   };
 
-  const handleJustClose = async (comment: string) => {
+  const persistSignature = async (
+    actionId: string,
+    paths: number[][] | null,
+  ) => {
+    if (!session?.user || !paths || paths.length === 0) return;
+    await saveActionSignature(
+      actionId,
+      paths as unknown as SignaturePoint[][],
+      signerName,
+      session.user.id,
+    );
+  };
+
+  const handleJustClose = async (
+    comment: string,
+    signaturePaths: number[][] | null,
+  ) => {
     if (!completingAction || !session?.user) return;
     await applyPhaseChange({
       actionId: completingAction.id,
@@ -86,12 +138,16 @@ export default function PDCADetail() {
       userId: session.user.id,
       comment,
     });
+    await persistSignature(completingAction.id, signaturePaths);
     setCompletingAction(null);
     toast.success("Action clôturée");
     await load();
   };
 
-  const handleCloseWithLesson = async (comment: string) => {
+  const handleCloseWithLesson = async (
+    comment: string,
+    signaturePaths: number[][] | null,
+  ) => {
     if (!completingAction || !session?.user) return;
     await applyPhaseChange({
       actionId: completingAction.id,
@@ -100,6 +156,7 @@ export default function PDCADetail() {
       userId: session.user.id,
       comment,
     });
+    await persistSignature(completingAction.id, signaturePaths);
     const pdcaId = item.id;
     setCompletingAction(null);
     toast.success("Action clôturée — redirection vers Leçons apprises");
@@ -151,6 +208,9 @@ export default function PDCADetail() {
             onEdit={() => setEditingAction(a)}
           />
           <ActionPhotos actionId={a.id} />
+          {signatureByAction[a.id] ? (
+            <SignatureView signature={signatureByAction[a.id]!} />
+          ) : null}
           <View style={styles.actionButtons}>
             {a.status !== "CANCELLED" && a.status !== "COMPLETED" ? (
               <Button
@@ -200,6 +260,7 @@ export default function PDCADetail() {
       <PhaseCompleteModal
         visible={!!completingAction}
         actionLabel={completingAction?.action ?? ""}
+        signerName={signerName}
         onCancel={() => setCompletingAction(null)}
         onJustClose={handleJustClose}
         onCloseWithLesson={handleCloseWithLesson}

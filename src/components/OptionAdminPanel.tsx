@@ -10,6 +10,7 @@ import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/States";
 import { OptionRowItem } from "@/components/OptionRowItem";
+import { ImportCsvButton } from "@/components/ImportCsvButton";
 import { useUI } from "@/ui/UIProvider";
 import {
   createOption,
@@ -160,6 +161,14 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
           onPress={handleCreate}
           loading={creating}
           disabled={!newLabel.trim()}
+        />
+
+        <View style={{ height: 8 }} />
+
+        <ImportCsvButton
+          kind={kind}
+          companyId={companyId}
+          onImported={onChanged}
         />
       </Card>
 

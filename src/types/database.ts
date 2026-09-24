@@ -110,6 +110,19 @@ export type FactoryTourRow = {
   created_at: string;
 };
 
+
+export type SignaturePoint = { x: number; y: number };
+
+export type ActionSignatureRow = {
+  id: string;
+  action_id: string;
+  company_id: string | null;
+  signed_by: string | null;
+  signer_name: string;
+  signature_paths: SignaturePoint[][];
+  signed_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {

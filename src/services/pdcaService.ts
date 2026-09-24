@@ -134,31 +134,76 @@ export async function createPDCA(
   draft: PDCADraft,
   userId: string,
 ): Promise<PDCAWithActions> {
-  const pdca = await insertPDCAWithRetry({
+  // 1. Récupère le company_id de l'utilisateur
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("company_id")
+    .eq("id", userId)
+    .single();
+  const companyId = (prof as { company_id?: string } | null)?.company_id ?? null;
+
+  // 2. Résout les FK à partir des labels
+  async function resolveId(
+    table: "company_lines" | "company_departments" | "company_defect_types" | "company_pilots",
+    label: string | null | undefined,
+  ): Promise<string | null> {
+    if (!label || !companyId) return null;
+    const { data } = await supabase
+      .from(table)
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("label", label)
+      .maybeSingle();
+    return (data as { id?: string } | null)?.id ?? null;
+  }
+
+  const [lineId, deptId, defectId] = await Promise.all([
+    resolveId("company_lines", draft.line),
+    resolveId("company_departments", draft.department),
+    resolveId("company_defect_types", draft.defect_type),
+  ]);
+
+  // 3. Insert le PDCA avec les FK
+  const { data: pdca, error } = await supabase
+    .from("pdca")
+    .insert({
       reference: makeReference(),
       subject: draft.subject,
       description: draft.description,
       line: draft.line,
       line_other: draft.line_other,
+      line_id: lineId,
       defect_type: draft.defect_type,
       defect_type_other: draft.defect_type_other,
+      defect_type_id: defectId,
       priority: draft.priority,
       department: draft.department,
+      department_id: deptId,
       status: "OPEN",
       created_by: userId,
-    });
-    const parentRow = pdca as PDCARow;
+    })
+    .select("*")
+    .single();
+  if (error || !pdca) throw error ?? new Error("Insert PDCA failed");
+  const parentRow = pdca as PDCARow;
 
-  const rows = draft.actions.map((a) => ({
-    pdca_id: parentRow.id,
-    action: a.action,
-    pilot_name: a.pilot_name,
-    opening_date: a.opening_date,
-    due_date: a.due_date,
-    phase: a.phase,
-    progress: PHASE_TO_PROGRESS[a.phase],
-    status: a.status,
-  }));
+  // 4. Résout les pilot_id et insert les actions
+  const rows = await Promise.all(
+    draft.actions.map(async (a) => {
+      const pilotId = await resolveId("company_pilots", a.pilot_name);
+      return {
+        pdca_id: parentRow.id,
+        action: a.action,
+        pilot_name: a.pilot_name,
+        pilot_id: pilotId,
+        opening_date: a.opening_date,
+        due_date: a.due_date,
+        phase: a.phase,
+        progress: PHASE_TO_PROGRESS[a.phase],
+        status: a.status,
+      };
+    }),
+  );
 
   const { data: actions, error: aerr } = await supabase
     .from("pdca_actions")
