@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -9,62 +10,33 @@ import {
 } from "react-native";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useRouter, usePathname } from "expo-router";
+import { useCompanyOptions } from "@/hooks/useCompanyOptions";
+import { useAuth } from "@/hooks/useAuth";
 import { theme } from "@/theme";
-import { DEPARTMENTS } from "@/constants/options";
 
 interface Item {
   label: string;
   href: string;
   match: string;
+  icon?: string;
 }
-
-const SECTIONS: { title: string; items: Item[] }[] = [
-  {
-    title: "Navigation",
-    items: [
-      { label: "Tableau de bord", href: "/(app)/dashboard", match: "/dashboard" },
-      { label: "Liste des PDCA", href: "/(app)/pdca", match: "/pdca" },
-      { label: "PDCA Form", href: "/(app)/pdca/new", match: "/pdca/new" },
-      { label: "Mon entreprise", href: "/(app)/company-settings", match: "/company-settings" },
-    ],
-  },
-  {
-    title: "Départements",
-    items: DEPARTMENTS.map((d) => ({
-      label: d,
-      href: `/(app)/department/${d}`,
-      match: `/department/${d}`,
-    })),
-  },
-  {
-    title: "Analyse",
-    items: [
-      { label: "Pilotes", href: "/(app)/pilotes", match: "/pilotes" },
-      { label: "Graphiques", href: "/(app)/graphiques", match: "/graphiques" },
-      { label: "Historique", href: "/(app)/historique", match: "/historique" },
-      { label: "Rapport hebdo", href: "/(app)/rapport-hebdo", match: "/rapport-hebdo" },
-      { label: "Lessons Learned", href: "/(app)/lessons-learned", match: "/lessons-learned" },
-      { label: "Actions annulées", href: "/(app)/actions-annulees", match: "/actions-annulees" },
-      { label: "Tour Usine", href: "/(app)/tour-usine", match: "/tour-usine" },
-    ],
-  },
-];
 
 export function DrawerContent(props: DrawerContentComponentProps) {
   const router = useRouter();
   const path = usePathname();
+  const { profile } = useAuth();
+  const { departments, loading } = useCompanyOptions();
+
+  const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
+  const fullName = profile?.full_name ?? "";
+  const role = profile?.role ?? "";
 
   const handlePress = (href: string) => {
-    // Blur any focused element first (web accessibility)
     if (Platform.OS === "web" && typeof document !== "undefined") {
       const active = document.activeElement as HTMLElement | null;
       if (active && typeof active.blur === "function") active.blur();
     }
-
-    // Navigate FIRST — let expo-router handle it synchronously
     router.push(href as never);
-
-    // Close the drawer AFTER a tiny delay so the tap isn't lost
     setTimeout(() => {
       try {
         props.navigation.closeDrawer();
@@ -72,96 +44,222 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     }, 50);
   };
 
+  const navItems: Item[] = [
+    { label: "Tableau de bord", href: "/(app)/dashboard", match: "/dashboard", icon: "📊" },
+    { label: "Liste des PDCA", href: "/(app)/pdca", match: "/pdca", icon: "📋" },
+    { label: "Nouveau PDCA", href: "/(app)/pdca/new", match: "/pdca/new", icon: "➕" },
+  ];
+
+  const deptItems: Item[] = departments.map((d) => ({
+    label: d.label,
+    href: `/(app)/department/${encodeURIComponent(d.label)}`,
+    match: `/department/${d.label}`,
+    icon: "🏭",
+  }));
+
+  const analysisItems: Item[] = [
+    { label: "Pilotes", href: "/(app)/pilotes", match: "/pilotes", icon: "👤" },
+    { label: "Graphiques", href: "/(app)/graphiques", match: "/graphiques", icon: "📈" },
+    { label: "Historique", href: "/(app)/historique", match: "/historique", icon: "🕐" },
+    { label: "Rapport hebdo", href: "/(app)/rapport-hebdo", match: "/rapport-hebdo", icon: "📄" },
+    { label: "Lessons Learned", href: "/(app)/lessons-learned", match: "/lessons-learned", icon: "💡" },
+    { label: "Actions annulées", href: "/(app)/actions-annulees", match: "/actions-annulees", icon: "🚫" },
+    { label: "Tour Usine", href: "/(app)/tour-usine", match: "/tour-usine", icon: "🏗️" },
+  ];
+
+  const adminItems: Item[] = isAdmin
+    ? [
+        { label: "Configuration", href: "/(app)/company-options", match: "/company-options", icon: "⚙️" },
+        { label: "Utilisateurs", href: "/(app)/company-users", match: "/company-users", icon: "👥" },
+        { label: "Mon entreprise", href: "/(app)/company-settings", match: "/company-settings", icon: "🏢" },
+      ]
+    : [];
+
+  const renderSection = (title: string, items: Item[]) => (
+    <View key={title} style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {items.map((item) => {
+        const active = path.startsWith(item.match);
+        return (
+          <Pressable
+            key={item.href}
+            onPressIn={() => handlePress(item.href)}
+            style={({ pressed }) => [
+              styles.item,
+              active && styles.itemActive,
+              pressed && styles.itemPressed,
+            ]}
+            android_ripple={{ color: "#0f4c8115", borderless: false }}
+            accessibilityRole="button"
+            accessibilityLabel={item.label}
+          >
+            {item.icon ? <Text style={styles.itemIcon}>{item.icon}</Text> : null}
+            <Text
+              style={[styles.itemTxt, active && styles.itemTxtActive]}
+              numberOfLines={1}
+            >
+              {item.label}
+            </Text>
+            {active ? <View style={styles.activeDot} /> : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
   return (
-    <ScrollView
-      style={styles.scroll}
-      contentContainerStyle={styles.wrap}
-      keyboardShouldPersistTaps="always"
-      showsVerticalScrollIndicator
-      // Critical: don't let the ScrollView steal the tap from Pressables
-      onStartShouldSetResponder={() => false}
-      onMoveShouldSetResponder={() => false}
-    >
-      <Text style={styles.brand}>PDCA</Text>
-      <Text style={styles.brandSub}>Gestion industrielle</Text>
-
-      {SECTIONS.map((section) => (
-        <View key={section.title} style={styles.section}>
-          <Text style={styles.sectionTitle}>{section.title}</Text>
-          {section.items.map((item) => {
-            const active = path.startsWith(item.match);
-            return (
-              <Pressable
-                key={item.href}
-                // onPressIn fires before the scroll can cancel the gesture
-                onPressIn={() => handlePress(item.href)}
-                style={({ pressed }) => [
-                  styles.item,
-                  active && styles.itemActive,
-                  pressed && styles.itemPressed,
-                ]}
-                android_ripple={{ color: "#00000022", borderless: false }}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
-              >
-                <Text
-                  style={[styles.itemTxt, active && styles.itemTxtActive]}
-                  numberOfLines={1}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+    <View style={styles.root}>
+      {/* ── Header ─────────────────────────────── */}
+      <View style={styles.header}>
+        <View style={styles.headerBadge}>
+          <Text style={styles.headerBadgeText}>PDCA</Text>
         </View>
-      ))}
+        <Text style={styles.headerSub}>Gestion industrielle</Text>
+      </View>
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      {/* ── Scrollable body ────────────────────── */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.wrap}
+        keyboardShouldPersistTaps="always"
+        showsVerticalScrollIndicator
+        onStartShouldSetResponder={() => false}
+        onMoveShouldSetResponder={() => false}
+      >
+        {renderSection("Navigation", navItems)}
+
+        {loading ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Départements</Text>
+            <ActivityIndicator color={theme.colors.primary} style={{ marginVertical: 12 }} />
+          </View>
+        ) : deptItems.length > 0 ? (
+          renderSection("Départements", deptItems)
+        ) : null}
+
+        {renderSection("Analyse", analysisItems)}
+
+        {isAdmin ? renderSection("Administration", adminItems) : null}
+
+        <View style={{ height: 24 }} />
+      </ScrollView>
+
+      {/* ── Footer: user info ──────────────────── */}
+      <View style={styles.footer}>
+        <View style={[styles.avatar, isAdmin && styles.avatarAdmin]}>
+          <Text style={styles.avatarTxt}>
+            {fullName.charAt(0).toUpperCase() || "?"}
+          </Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.footerName} numberOfLines={1}>
+            {fullName || "Utilisateur"}
+          </Text>
+          <Text style={styles.footerRole} numberOfLines={1}>
+            {isAdmin ? "Administrateur" : role || "Membre"}
+          </Text>
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: theme.colors.surface },
-  wrap: { paddingHorizontal: 0, paddingBottom: 40 },
-  brand: {
-    fontSize: 24,
-    fontWeight: "800",
+  root: { flex: 1, backgroundColor: theme.colors.surface },
+
+  // ── Header ─────────────────────────────────
+  header: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "ios" ? 56 : 24,
+    paddingBottom: 20,
+  },
+  headerBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  headerBadgeText: {
+    fontSize: 18,
+    fontWeight: "900",
     color: theme.colors.primary,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    letterSpacing: 1,
   },
-  brandSub: {
+  headerSub: {
     fontSize: 12,
-    color: theme.colors.textMuted,
-    paddingHorizontal: 16,
-    marginBottom: 12,
+    color: "#ffffffcc",
+    fontWeight: "600",
   },
+
+  // ── Scroll body ────────────────────────────
+  scroll: { flex: 1, backgroundColor: theme.colors.surface },
+  wrap: { paddingBottom: 12 },
+
   section: { marginBottom: 4 },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: 10,
+    fontWeight: "800",
     color: theme.colors.textMuted,
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 6,
+    paddingTop: 18,
+    paddingBottom: 8,
     textTransform: "uppercase",
-    letterSpacing: 0.7,
+    letterSpacing: 1,
   },
+
   item: {
-    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    minHeight: 48,
-    justifyContent: "center",
+    minHeight: 46,
+    gap: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "transparent",
   },
   itemPressed: {
-    backgroundColor: "#eef2f7",
+    backgroundColor: "#f1f5f9",
   },
   itemActive: {
-    backgroundColor: theme.colors.primary + "15",
-    borderLeftWidth: 3,
+    backgroundColor: theme.colors.primary + "0d",
     borderLeftColor: theme.colors.primary,
   },
-  itemTxt: { fontSize: 14, color: theme.colors.text },
-  itemTxtActive: { color: theme.colors.primary, fontWeight: "700" },
+  itemIcon: { fontSize: 16, width: 22, textAlign: "center" },
+  itemTxt: { flex: 1, fontSize: 14, color: theme.colors.text, fontWeight: "500" },
+  itemTxtActive: { color: theme.colors.primary, fontWeight: "800" },
+  activeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.primary,
+  },
+
+  // ── Footer ─────────────────────────────────
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.textMuted,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarAdmin: {
+    backgroundColor: theme.colors.primary,
+  },
+  avatarTxt: { color: "#fff", fontWeight: "800", fontSize: 18 },
+  footerName: { fontSize: 13, fontWeight: "700", color: theme.colors.text },
+  footerRole: { fontSize: 11, color: theme.colors.textMuted, marginTop: 2 },
 });
