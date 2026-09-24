@@ -37,11 +37,12 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       if (active && typeof active.blur === "function") active.blur();
     }
     router.push(href as never);
+    // Give navigation a moment, then close drawer
     setTimeout(() => {
       try {
         props.navigation.closeDrawer();
       } catch {}
-    }, 50);
+    }, 80);
   };
 
   const navItems: Item[] = [
@@ -83,7 +84,8 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         return (
           <Pressable
             key={item.href}
-            onPressIn={() => handlePress(item.href)}
+            // onPress fires only on real taps, NOT on scroll/swipe
+            onPress={() => handlePress(item.href)}
             style={({ pressed }) => [
               styles.item,
               active && styles.itemActive,
@@ -121,10 +123,9 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.wrap}
-        keyboardShouldPersistTaps="always"
         showsVerticalScrollIndicator
-        onStartShouldSetResponder={() => false}
-        onMoveShouldSetResponder={() => false}
+        bounces={false}
+        // Important: standard ScrollView props so swipe-to-scroll works naturally
       >
         {renderSection("Navigation", navItems)}
 
@@ -167,7 +168,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.colors.surface },
 
-  // ── Header ─────────────────────────────────
   header: {
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
@@ -194,7 +194,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // ── Scroll body ────────────────────────────
   scroll: { flex: 1, backgroundColor: theme.colors.surface },
   wrap: { paddingBottom: 12 },
 
@@ -213,9 +212,9 @@ const styles = StyleSheet.create({
   item: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    minHeight: 46,
+    minHeight: 50,
     gap: 12,
     borderLeftWidth: 3,
     borderLeftColor: "transparent",
@@ -237,7 +236,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
 
-  // ── Footer ─────────────────────────────────
   footer: {
     flexDirection: "row",
     alignItems: "center",
