@@ -8,7 +8,10 @@
       "@/*": [
         "src/*"
       ]
-    }
+    },
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true
   },
   "include": [
     "**/*.ts",

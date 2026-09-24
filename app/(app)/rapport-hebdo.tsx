@@ -4,6 +4,11 @@ import { Card } from "@/components/Card";
 import { BarChart, StatTile } from "@/components/Charts";
 import { ErrorState, LoadingState } from "@/components/States";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
+import { Button } from "@/components/Button";
+import { computeWeeklyReport, exportWeeklyReport } from "@/services/reportService";
+import { getCompany, CompanyRow } from "@/services/companiesService";
+import { useAuth } from "@/hooks/useAuth";
+import { useUI } from "@/ui/UIProvider";
 import { theme } from "@/theme";
 
 function startOfWeek(d: Date): Date {
@@ -32,6 +37,16 @@ export default function RapportHebdo() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
+  const { profile } = useAuth();
+  const { toast } = useUI();
+  const [company, setCompany] = useState<CompanyRow | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const companyId = (profile as { company_id?: string } | null)?.company_id;
+
+  useEffect(() => {
+    if (!companyId) return;
+    getCompany(companyId).then(setCompany).catch(console.warn);
+  }, [companyId]);
 
   const load = async () => {
     try {
@@ -114,6 +129,19 @@ export default function RapportHebdo() {
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
 
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const data = computeWeeklyReport(items, week.start, week.end, company);
+      await exportWeeklyReport(data);
+      toast.success("Rapport généré");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Échec de l'export");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <ScrollView
       style={{ backgroundColor: theme.colors.bg }}
@@ -146,6 +174,14 @@ export default function RapportHebdo() {
         <StatTile label="Actions ouvertes" value={report.open} />
         <StatTile label="Actions en retard" value={report.overdue} color={theme.colors.danger} />
         <StatTile label="Actions terminées" value={report.completed} color={theme.colors.success} />
+      </View>
+
+      <View style={{ marginTop: 12, marginBottom: 12 }}>
+        <Button
+          label="📄 Exporter en PDF"
+          onPress={handleExport}
+          loading={exporting}
+        />
       </View>
 
       <Card>

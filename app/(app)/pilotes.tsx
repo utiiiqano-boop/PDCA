@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
+import { ExportButton } from "@/components/ExportButton";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listPilotSummaries, PilotSummary } from "@/services/pdcaService";
@@ -66,6 +67,23 @@ export default function PilotesScreen() {
         <Text style={styles.sub}>
           {items.length} pilote(s) • {totalActions} action(s) • {globalRate}% réalisé
         </Text>
+      </View>
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <ExportButton
+          filename="pilotes"
+          headers={["Pilote","Nb PDCA","Actions totales","Terminées","En cours","Ouvertes","En retard","Annulées","Taux réalisation %"]}
+          rows={() => items.map((p) => [
+            p.pilot_name,
+            p.pdca_ids.length,
+            p.total_actions,
+            p.completed_actions,
+            p.in_progress_actions,
+            p.open_actions,
+            p.overdue_actions,
+            p.cancelled_actions,
+            p.completion_rate,
+          ])}
+        />
       </View>
 
       {items.length === 0 ? (

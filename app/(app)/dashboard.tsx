@@ -10,6 +10,7 @@ import { Link } from "expo-router";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ProgressBar } from "@/components/ProgressBar";
+import { ExportButton } from "@/components/ExportButton";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
 import { getCompany, CompanyRow } from "@/services/companiesService";
@@ -167,6 +168,25 @@ export default function Dashboard() {
       </Link>
 
       <View style={{ height: 24 }} />
+      <ExportButton
+        filename="dashboard-synthese"
+        headers={["Indicateur","Valeur"]}
+        rows={() => [
+          ["PDCA Total", stats.pdcaTotal],
+          ["PDCA Ouverts", stats.pdcaOpen],
+          ["PDCA En cours", stats.pdcaInProgress],
+          ["PDCA Terminés", stats.pdcaCompleted],
+          ["Actions totales", stats.actionsTotal],
+          ["Actions ouvertes", stats.actionsOpen],
+          ["Actions en cours", stats.actionsInProgress],
+          ["Actions terminées", stats.actionsCompleted],
+          ["Actions en retard", stats.actionsOverdue],
+          ["Actions annulées", stats.actionsCancelled],
+          ["Taux réalisation actions %", stats.rate],
+          ["Taux réalisation PDCA %", stats.pdcaRate],
+        ]}
+      />
+      <View style={{ height: 12 }} />
       <Button label="Se déconnecter" variant="danger" onPress={signOut} />
 
       {stats.pdcaTotal === 0 && (

@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { Card } from "@/components/Card";
+import { ExportButton } from "@/components/ExportButton";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Select } from "@/components/Select";
@@ -83,6 +84,18 @@ export default function TourUsineScreen() {
       />
       <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
         <Button label="+ Nouvelle tournée" onPress={() => setShowForm(true)} />
+        <View style={{ height: 8 }} />
+        <ExportButton
+          filename="tour-usine"
+          headers={["Titre","Lieu","Date","Statut","Description"]}
+          rows={() => filtered.map((r) => [
+            r.title,
+            r.location ?? "",
+            r.tour_date ?? "",
+            r.status,
+            r.description ?? "",
+          ])}
+        />
       </View>
 
       {filtered.length === 0 ? (

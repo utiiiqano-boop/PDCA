@@ -5,6 +5,7 @@ import { Card } from "@/components/Card";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { Button } from "@/components/Button";
+import { ExportButton } from "@/components/ExportButton";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
 import { theme } from "@/theme";
 
@@ -34,6 +35,22 @@ export default function PDCAList() {
         <Link href="/(app)/pdca/new" asChild>
           <Button label="+ Nouveau PDCA" onPress={() => {}} />
         </Link>
+        <View style={{ height: 8 }} />
+        <ExportButton
+          filename="pdca-list"
+          headers={["Référence","Sujet","Ligne","Département","Priorité","Statut","Type défaut","Créé le","Nb actions"]}
+          rows={() => items.map((p) => [
+            p.reference,
+            p.subject,
+            p.line,
+            p.department ?? "",
+            p.priority === "HIGH" ? "Élevée" : p.priority === "MEDIUM" ? "Moyenne" : "Faible",
+            p.status,
+            p.defect_type ?? "",
+            new Date(p.created_at).toLocaleDateString("fr-FR"),
+            p.pdca_actions.length,
+          ])}
+        />
       </View>
 
       {items.length === 0 ? (

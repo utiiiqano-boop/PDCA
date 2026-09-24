@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Link, Stack, useLocalSearchParams } from "expo-router";
 import { Card } from "@/components/Card";
+import { ExportButton } from "@/components/ExportButton";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import {
@@ -81,6 +82,21 @@ export default function DepartmentScreen() {
       </View>
 
       <FilterBar value={filters} onChange={setFilters} />
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <ExportButton
+          filename={`department-${dept}`}
+          headers={["Référence","Sujet","Ligne","Priorité","Statut","Créé le","Nb actions"]}
+          rows={() => filtered.map((p) => [
+            p.reference,
+            p.subject,
+            p.line,
+            p.priority,
+            p.status,
+            new Date(p.created_at).toLocaleDateString("fr-FR"),
+            p.pdca_actions.length,
+          ])}
+        />
+      </View>
 
       {filtered.length === 0 ? (
         <EmptyState

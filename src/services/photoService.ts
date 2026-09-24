@@ -9,7 +9,7 @@ export interface ActionPhoto {
   uploaded_by: string | null;
   created_at: string;
   // Computed client-side
-  signed_url?: string;
+  signed_url?: string | null;
 }
 
 /**
@@ -83,7 +83,7 @@ export async function uploadActionPhoto(
 
   return {
     ...(data as ActionPhoto),
-    signed_url: signed?.signedUrl ?? undefined,
+    signed_url: signed?.signedUrl ?? null,
   };
 }
 
@@ -109,7 +109,10 @@ export async function listPhotosForAction(actionId: string): Promise<ActionPhoto
   const urlByPath = new Map(
     (signed ?? []).map((s) => [s.path, s.signedUrl]),
   );
-  return rows.map((r) => ({ ...r, signed_url: urlByPath.get(r.storage_path) }));
+  return rows.map((r) => ({
+    ...r,
+    signed_url: urlByPath.get(r.storage_path) ?? null,
+  }));
 }
 
 export async function deleteActionPhoto(photo: ActionPhoto): Promise<void> {

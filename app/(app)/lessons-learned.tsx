@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { Card } from "@/components/Card";
+import { ExportButton } from "@/components/ExportButton";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Select } from "@/components/Select";
@@ -85,6 +86,20 @@ export default function LessonsLearnedScreen() {
       />
       <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
         <Button label="+ Nouvelle leçon" onPress={() => setShowForm(true)} />
+        <View style={{ height: 8 }} />
+        <ExportButton
+          filename="lessons-learned"
+          headers={["Titre","Problème","Cause","Solution","Résultat","Standardisation","Créé le"]}
+          rows={() => filtered.map((l) => [
+            l.title,
+            l.problem ?? "",
+            l.cause ?? "",
+            l.solution ?? "",
+            l.result ?? "",
+            l.standardization ?? "",
+            new Date(l.created_at).toLocaleDateString("fr-FR"),
+          ])}
+        />
       </View>
 
       {filtered.length === 0 ? (

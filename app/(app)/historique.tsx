@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { Card } from "@/components/Card";
+import { ExportButton } from "@/components/ExportButton";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listHistory, HistoryEntry } from "@/services/pdcaService";
 import { theme } from "@/theme";
@@ -116,7 +117,20 @@ export default function HistoriqueScreen() {
           );
         })}
       </ScrollView>
-
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <ExportButton
+          filename="historique"
+          headers={["Date","Type","Ancienne valeur","Nouvelle valeur","Commentaire","PDCA"]}
+          rows={() => filtered.map((h) => [
+            fmt(h.created_at),
+            EVENT_LABELS[h.event_type] ?? h.event_type,
+            h.old_value ?? "",
+            h.new_value ?? "",
+            h.comment ?? "",
+            h.pdca_reference ?? "",
+          ])}
+        />
+      </View>
       {filtered.length === 0 ? (
         <EmptyState
           title="Aucun événement"

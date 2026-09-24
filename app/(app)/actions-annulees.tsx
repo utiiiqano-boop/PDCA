@@ -10,6 +10,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
 import { Card } from "@/components/Card";
+import { ExportButton } from "@/components/ExportButton";
 import { StatusBadge } from "@/components/Badges";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
@@ -53,6 +54,21 @@ export default function ActionsAnnuleesScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Actions annulées</Text>
         <Text style={styles.sub}>{items.length} action(s)</Text>
+      </View>
+      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+        <ExportButton
+          filename="actions-annulees"
+          headers={["PDCA","Sujet","Action","Pilote","Ouverture","Échéance","Statut"]}
+          rows={() => items.map((a) => [
+            a.pdca_reference ?? "",
+            a.pdca_subject ?? "",
+            a.action,
+            a.pilot_name,
+            a.opening_date,
+            a.due_date ?? "",
+            a.status,
+          ])}
+        />
       </View>
 
       {items.length === 0 ? (
