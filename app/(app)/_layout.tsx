@@ -2,16 +2,22 @@ import React from "react";
 import { Drawer } from "expo-router/drawer";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
-import { useNotificationTap } from "@/hooks/useNotificationTap";
 import { LoadingState } from "@/components/States";
 import { DrawerContent } from "@/components/DrawerContent";
 import { theme } from "@/theme";
 
 export default function AppLayout() {
-  const { session, loading } = useAuth();
-  useNotificationTap();
+  const { session, loading, profile } = useAuth();
+
   if (loading) return <LoadingState />;
   if (!session) return <Redirect href="/(auth)/login" />;
+
+  // If the user must change password, redirect OUT of the drawer entirely.
+  // The target route lives at the root level (app/change-password.tsx),
+  // so no Drawer is rendered → no infinite loop.
+  if (profile?.must_change_password) {
+    return <Redirect href="/change-password" />;
+  }
 
   return (
     <Drawer
@@ -20,7 +26,6 @@ export default function AppLayout() {
         headerStyle: { backgroundColor: theme.colors.primary },
         headerTintColor: "#fff",
         headerTitleStyle: { fontWeight: "700" },
-        // Disable edge swipe → use ☰ button only. Prevents the "can't click after swipe" bug.
         swipeEnabled: false,
         swipeEdgeWidth: 0,
         drawerType: "front",
@@ -32,8 +37,14 @@ export default function AppLayout() {
       <Drawer.Screen name="company-users/index" options={{ title: "Utilisateurs" }} />
       <Drawer.Screen name="pdca/index" options={{ title: "PDCA" }} />
       <Drawer.Screen name="pdca/new" options={{ title: "Nouveau PDCA" }} />
-      <Drawer.Screen name="pdca/[id]" options={{ title: "Détail PDCA", drawerItemStyle: { display: "none" } }} />
-      <Drawer.Screen name="department/[dept]" options={{ title: "Département", drawerItemStyle: { display: "none" } }} />
+      <Drawer.Screen
+        name="pdca/[id]"
+        options={{ title: "Détail PDCA", drawerItemStyle: { display: "none" } }}
+      />
+      <Drawer.Screen
+        name="department/[dept]"
+        options={{ title: "Département", drawerItemStyle: { display: "none" } }}
+      />
       <Drawer.Screen name="pilotes" options={{ title: "Pilotes" }} />
       <Drawer.Screen name="historique" options={{ title: "Historique" }} />
       <Drawer.Screen name="actions-annulees" options={{ title: "Actions annulées" }} />
@@ -41,7 +52,10 @@ export default function AppLayout() {
       <Drawer.Screen name="rapport-hebdo" options={{ title: "Rapport hebdomadaire" }} />
       <Drawer.Screen name="lessons-learned" options={{ title: "Lessons Learned" }} />
       <Drawer.Screen name="tour-usine" options={{ title: "Tour Usine" }} />
-      <Drawer.Screen name="placeholder/[slug]" options={{ title: "", drawerItemStyle: { display: "none" } }} />
+      <Drawer.Screen
+        name="placeholder/[slug]"
+        options={{ title: "", drawerItemStyle: { display: "none" } }}
+      />
     </Drawer>
   );
 }

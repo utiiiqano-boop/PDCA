@@ -64,6 +64,13 @@ export default function LoginScreen() {
 
         <Text
           style={styles.link}
+          onPress={() => router.push("/(auth)/forgot-password")}
+        >
+          Mot de passe oublié ?
+        </Text>
+
+        <Text
+          style={styles.link}
           onPress={() => router.push("/(auth)/signup")}
         >
           Créer un compte

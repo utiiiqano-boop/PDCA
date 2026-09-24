@@ -16,6 +16,7 @@ interface AuthCtx {
     companyName: string,
   ) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
@@ -25,7 +26,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ── 1. Subscribe to auth state changes ─────────────────
   useEffect(() => {
     let mounted = true;
 
@@ -45,7 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ── 2. Load profile when session changes ────────────────
+  const loadProfile = async (userId: string): Promise<ProfileRow | null> => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+    if (error || !data) return null;
+    return data as ProfileRow;
+  };
+
   useEffect(() => {
     if (!session?.user) {
       setProfile(null);
@@ -55,27 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
-
+      const p = await loadProfile(session.user.id);
       if (cancelled) return;
-
-      if (error || !data) {
+      if (!p) {
         setProfile(null);
         return;
       }
-
-      const p = data as ProfileRow;
-
-      // Disabled account → force sign out
       if (p.active === false) {
         await supabase.auth.signOut();
         return;
       }
-
       setProfile(p);
     })();
 
@@ -84,11 +82,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [session?.user?.id]);
 
-  // ── 3. Context value ────────────────────────────────────
+  const refreshProfile = async () => {
+    if (!session?.user) return;
+    const p = await loadProfile(session.user.id);
+    setProfile(p);
+  };
+
   const value: AuthCtx = {
     session,
     profile,
     loading,
+    refreshProfile,
     signIn: async (email, password) => {
       const { error } = await supabase.auth.signInWithPassword({
         email,

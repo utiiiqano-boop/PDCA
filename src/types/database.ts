@@ -26,6 +26,7 @@ export type ProfileRow = {
   expo_push_token: string | null;
   active: boolean;
   is_admin: boolean;
+  must_change_password: boolean;
   created_at: string;
   updated_at: string;
 };

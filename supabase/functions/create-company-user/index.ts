@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
         role,
         is_admin: isAdmin,
         active: true,
+        must_change_password: true,
       })
       .eq("id", created.user.id);
 
