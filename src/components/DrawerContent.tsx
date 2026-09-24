@@ -1,9 +1,13 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  DrawerContentScrollView,
-  DrawerContentComponentProps,
-} from "@react-navigation/drawer";
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useRouter, usePathname } from "expo-router";
 import { theme } from "@/theme";
 import { DEPARTMENTS } from "@/constants/options";
@@ -21,6 +25,7 @@ const SECTIONS: { title: string; items: Item[] }[] = [
       { label: "Tableau de bord", href: "/(app)/dashboard", match: "/dashboard" },
       { label: "Liste des PDCA", href: "/(app)/pdca", match: "/pdca" },
       { label: "PDCA Form", href: "/(app)/pdca/new", match: "/pdca/new" },
+      { label: "Mon entreprise", href: "/(app)/company-settings", match: "/company-settings" },
     ],
   },
   {
@@ -50,19 +55,32 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   const path = usePathname();
 
   const handlePress = (href: string) => {
-    // 1) Navigate FIRST — expo-router handles this synchronously
+    // Blur any focused element first (web accessibility)
+    if (Platform.OS === "web" && typeof document !== "undefined") {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && typeof active.blur === "function") active.blur();
+    }
+
+    // Navigate FIRST — let expo-router handle it synchronously
     router.push(href as never);
-    // 2) Close the drawer AFTER — the drawer closes during the transition
-    requestAnimationFrame(() => {
-      props.navigation.closeDrawer();
-    });
+
+    // Close the drawer AFTER a tiny delay so the tap isn't lost
+    setTimeout(() => {
+      try {
+        props.navigation.closeDrawer();
+      } catch {}
+    }, 50);
   };
 
   return (
-    <DrawerContentScrollView
-      {...props}
+    <ScrollView
+      style={styles.scroll}
       contentContainerStyle={styles.wrap}
-      scrollEnabled
+      keyboardShouldPersistTaps="always"
+      showsVerticalScrollIndicator
+      // Critical: don't let the ScrollView steal the tap from Pressables
+      onStartShouldSetResponder={() => false}
+      onMoveShouldSetResponder={() => false}
     >
       <Text style={styles.brand}>PDCA</Text>
       <Text style={styles.brandSub}>Gestion industrielle</Text>
@@ -75,10 +93,16 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             return (
               <Pressable
                 key={item.href}
-                onPress={() => handlePress(item.href)}
-                style={[styles.item, active && styles.itemActive]}
-                android_ripple={{ color: "#00000022" }}
-                hitSlop={{ top: 4, bottom: 4 }}
+                // onPressIn fires before the scroll can cancel the gesture
+                onPressIn={() => handlePress(item.href)}
+                style={({ pressed }) => [
+                  styles.item,
+                  active && styles.itemActive,
+                  pressed && styles.itemPressed,
+                ]}
+                android_ripple={{ color: "#00000022", borderless: false }}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
               >
                 <Text
                   style={[styles.itemTxt, active && styles.itemTxtActive]}
@@ -92,26 +116,26 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         </View>
       ))}
 
-      {/* Bottom spacer so last items are always reachable */}
-      <View style={{ height: 32 }} />
-    </DrawerContentScrollView>
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { padding: 0, paddingBottom: 24 },
+  scroll: { flex: 1, backgroundColor: theme.colors.surface },
+  wrap: { paddingHorizontal: 0, paddingBottom: 40 },
   brand: {
     fontSize: 24,
     fontWeight: "800",
     color: theme.colors.primary,
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 16,
   },
   brandSub: {
     fontSize: 12,
     color: theme.colors.textMuted,
     paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   section: { marginBottom: 4 },
   sectionTitle: {
@@ -119,16 +143,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.textMuted,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 14,
     paddingBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
   item: {
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    minHeight: 44,
+    minHeight: 48,
     justifyContent: "center",
+  },
+  itemPressed: {
+    backgroundColor: "#eef2f7",
   },
   itemActive: {
     backgroundColor: theme.colors.primary + "15",
