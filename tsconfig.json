@@ -7,20 +7,9 @@
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    },
-    "ignoreDeprecations": "6.0"
+      "@/*": ["./src/*"]
+    }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ],
-  "exclude": [
-    "supabase/functions/**",
-    "node_modules"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["supabase/functions/**", "node_modules"]
 }
