@@ -249,11 +249,14 @@ export async function listPDCAByDepartment(
 
 export interface PilotSummary {
   pilot_name: string;
+  pdca_ids: string[];
   total_actions: number;
   open_actions: number;
+  in_progress_actions: number;
   overdue_actions: number;
   completed_actions: number;
-  pdca_ids: string[];
+  cancelled_actions: number;
+  completion_rate: number; // 0-100 (excludes cancelled)
 }
 
 export async function listPilotSummaries(): Promise<PilotSummary[]> {
@@ -262,27 +265,37 @@ export async function listPilotSummaries(): Promise<PilotSummary[]> {
 
   const map = new Map<string, PilotSummary>();
   for (const row of (data ?? []) as PDCAActionRow[]) {
-    const key = row.pilot_name || "—";
-    const s =
-      map.get(key) ??
-      ({
+    const key = row.pilot_name?.trim() || "—";
+    if (!map.has(key)) {
+      map.set(key, {
         pilot_name: key,
+        pdca_ids: [],
         total_actions: 0,
         open_actions: 0,
+        in_progress_actions: 0,
         overdue_actions: 0,
         completed_actions: 0,
-        pdca_ids: [],
-      } as PilotSummary);
+        cancelled_actions: 0,
+        completion_rate: 0,
+      });
+    }
+    const s = map.get(key)!;
     s.total_actions += 1;
-    if (row.status === "OPEN" || row.status === "IN_PROGRESS") s.open_actions += 1;
+    if (row.status === "OPEN") s.open_actions += 1;
+    if (row.status === "IN_PROGRESS") s.in_progress_actions += 1;
     if (row.status === "OVERDUE") s.overdue_actions += 1;
     if (row.status === "COMPLETED") s.completed_actions += 1;
+    if (row.status === "CANCELLED") s.cancelled_actions += 1;
     if (!s.pdca_ids.includes(row.pdca_id)) s.pdca_ids.push(row.pdca_id);
-    map.set(key, s);
   }
-  return Array.from(map.values()).sort(
-    (a, b) => b.total_actions - a.total_actions,
-  );
+
+  const list = Array.from(map.values());
+  for (const s of list) {
+    const active = s.total_actions - s.cancelled_actions;
+    s.completion_rate = active > 0 ? Math.round((s.completed_actions / active) * 100) : 0;
+  }
+
+  return list.sort((a, b) => b.total_actions - a.total_actions);
 }
 
 export interface HistoryEntry extends PDCAHistoryRow {
@@ -378,17 +391,22 @@ export async function updateActionWithComment(
   userId: string,
 ): Promise<void> {
   const trimmed = comment.trim();
-  if (!trimmed) {
-    throw new Error("Un commentaire est requis pour justifier la modification.");
-  }
+  if (!trimmed) throw new Error("Un commentaire est requis pour justifier la modification.");
 
   const pilotChanged = next.pilot_name !== previous.pilot_name;
   const dateChanged = next.due_date !== previous.due_date;
+  if (!pilotChanged && !dateChanged) throw new Error("Aucune modification à enregistrer.");
 
-  if (!pilotChanged && !dateChanged) {
-    throw new Error("Aucune modification à enregistrer.");
-  }
+  // Récupère le pdca_id
+  const { data: action, error: fetchErr } = await supabase
+    .from("pdca_actions")
+    .select("pdca_id")
+    .eq("id", actionId)
+    .single();
+  if (fetchErr) throw fetchErr;
+  const pdcaId = action?.pdca_id ?? null;
 
+  // UPDATE
   const { error } = await supabase
     .from("pdca_actions")
     .update({
@@ -398,17 +416,11 @@ export async function updateActionWithComment(
     .eq("id", actionId);
   if (error) throw error;
 
-  const events: Array<{
-    action_id: string;
-    user_id: string;
-    event_type: string;
-    old_value: string | null;
-    new_value: string | null;
-    comment: string;
-  }> = [];
-
+  // INSERT history entries
+  const events: Array<Record<string, unknown>> = [];
   if (pilotChanged) {
     events.push({
+      pdca_id: pdcaId,
       action_id: actionId,
       user_id: userId,
       event_type: "PILOT_CHANGED",
@@ -419,6 +431,7 @@ export async function updateActionWithComment(
   }
   if (dateChanged) {
     events.push({
+      pdca_id: pdcaId,
       action_id: actionId,
       user_id: userId,
       event_type: "DUE_DATE_CHANGED",
@@ -444,21 +457,34 @@ export async function cancelActionWithComment(
   const trimmed = comment.trim();
   if (!trimmed) throw new Error("Une raison d'annulation est requise.");
 
-  const { error } = await supabase
+  // 1) Récupère l'action pour connaître son pdca_id
+  const { data: action, error: fetchErr } = await supabase
+    .from("pdca_actions")
+    .select("id, pdca_id, action, status")
+    .eq("id", actionId)
+    .single();
+  if (fetchErr) throw fetchErr;
+  if (!action) throw new Error("Action introuvable.");
+  if (action.status === "CANCELLED") return;
+
+  // 2) UPDATE action status
+  const { error: updErr } = await supabase
     .from("pdca_actions")
     .update({ status: "CANCELLED" })
     .eq("id", actionId);
-  if (error) throw error;
+  if (updErr) throw updErr;
 
-  const { error: e2 } = await supabase.from("pdca_history").insert({
+  // 3) INSERT history avec pdca_id
+  const { error: histErr } = await supabase.from("pdca_history").insert({
+    pdca_id: action.pdca_id,
     action_id: actionId,
     user_id: userId,
     event_type: "ACTION_CANCELLED",
-    old_value: "ACTIVE",
+    old_value: action.status,
     new_value: "CANCELLED",
     comment: trimmed,
   });
-  if (e2) throw e2;
+  if (histErr) throw histErr;
 }
 
 export interface PhaseChangeOptions {
@@ -473,10 +499,17 @@ export interface PhaseChangeOptions {
 export async function applyPhaseChange(opts: PhaseChangeOptions): Promise<void> {
   const progress = PHASE_TO_PROGRESS[opts.phase];
   const isComplete = opts.phase === "A";
-  const status: ActionStatus = isComplete
-    ? (opts.completeStatus ?? "COMPLETED")
-    : "IN_PROGRESS";
+  const status: ActionStatus = isComplete ? (opts.completeStatus ?? "COMPLETED") : "IN_PROGRESS";
   const completed_at = isComplete ? new Date().toISOString() : null;
+
+  // Récupère pdca_id
+  const { data: action, error: fetchErr } = await supabase
+    .from("pdca_actions")
+    .select("pdca_id")
+    .eq("id", opts.actionId)
+    .single();
+  if (fetchErr) throw fetchErr;
+  const pdcaId = action?.pdca_id ?? null;
 
   const { error } = await supabase
     .from("pdca_actions")
@@ -485,6 +518,7 @@ export async function applyPhaseChange(opts: PhaseChangeOptions): Promise<void> 
   if (error) throw error;
 
   await supabase.from("pdca_history").insert({
+    pdca_id: pdcaId,
     action_id: opts.actionId,
     user_id: opts.userId,
     event_type: isComplete ? "ACTION_COMPLETED" : "PHASE_CHANGED",

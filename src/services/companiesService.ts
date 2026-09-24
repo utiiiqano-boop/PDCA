@@ -39,23 +39,43 @@ export async function uploadCompanyLogo(
   companyId: string,
   localUri: string,
 ): Promise<string> {
-  // Convert local file URI → ArrayBuffer
+  // 1) Detect mime type (works for data: URLs and file paths)
+  let mime = "image/jpeg";
+  let ext = "jpg";
+
+  if (localUri.startsWith("data:")) {
+    // data:image/png;base64,...   → extract "image/png"
+    const match = localUri.match(/^data:([^;]+);/);
+    if (match && match[1]) {
+      mime = match[1];
+      if (mime.includes("png")) ext = "png";
+      else if (mime.includes("webp")) ext = "webp";
+      else if (mime.includes("jpeg") || mime.includes("jpg")) ext = "jpg";
+    }
+  } else if (localUri.toLowerCase().endsWith(".png")) {
+    mime = "image/png";
+    ext = "png";
+  } else if (localUri.toLowerCase().endsWith(".webp")) {
+    mime = "image/webp";
+    ext = "webp";
+  }
+
+  // 2) Fetch + ArrayBuffer
   const response = await fetch(localUri);
   const arrayBuffer = await response.arrayBuffer();
 
-  // Determine file extension
-  const ext = localUri.toLowerCase().endsWith(".png") ? "png" : "jpg";
   const path = `${companyId}/logo.${ext}`;
 
+  // 3) Upload
   const { error: upErr } = await supabase.storage
     .from("company-logos")
     .upload(path, arrayBuffer, {
-      contentType: ext === "png" ? "image/png" : "image/jpeg",
+      contentType: mime,
       upsert: true,
     });
   if (upErr) throw upErr;
 
-  // Signed URL valid for 1 year
+  // 4) Signed URL valid for 1 year
   const { data: signed, error: signErr } = await supabase.storage
     .from("company-logos")
     .createSignedUrl(path, 60 * 60 * 24 * 365);
