@@ -9,6 +9,7 @@ import { ErrorState, LoadingState } from "@/components/States";
 import { EditActionModal } from "@/components/EditActionModal";
 import { PhaseCompleteModal } from "@/components/PhaseCompleteModal";
 import { CancelActionModal } from "@/components/CancelActionModal";
+import { ActionPhotos } from "@/components/ActionPhotos";
 import {
   getPDCA,
   cancelPDCA,
@@ -149,6 +150,7 @@ export default function PDCADetail() {
             onPhaseChange={(next) => handlePhaseChange(a, next)}
             onEdit={() => setEditingAction(a)}
           />
+          <ActionPhotos actionId={a.id} />
           <View style={styles.actionButtons}>
             {a.status !== "CANCELLED" && a.status !== "COMPLETED" ? (
               <Button
