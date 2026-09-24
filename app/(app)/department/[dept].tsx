@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import { Link, Stack, useLocalSearchParams } from "expo-router";
 import { Card } from "@/components/Card";
-import { ExportButton } from "@/components/ExportButton";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import {
@@ -18,17 +17,23 @@ import {
   applyFilters,
   defaultFilters,
 } from "@/components/FilterBar";
+import { ExportButton } from "@/components/ExportButton";
 import {
-  listPDCAByDepartment,
+  listPDCAByDepartmentId,
   PDCAWithActions,
 } from "@/services/pdcaService";
-import { DEPARTMENTS } from "@/constants/options";
+import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { theme } from "@/theme";
 
 export default function DepartmentScreen() {
   const params = useLocalSearchParams<{ dept: string }>();
-  const dept = params.dept ?? "";
-  const valid = (DEPARTMENTS as readonly string[]).includes(dept);
+  const deptLabel = params.dept ? decodeURIComponent(params.dept) : "";
+
+  const { departments, loading: optsLoading } = useCompanyOptions();
+  const department = useMemo(
+    () => departments.find((d) => d.label === deptLabel),
+    [departments, deptLabel],
+  );
 
   const [items, setItems] = useState<PDCAWithActions[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,22 +42,23 @@ export default function DepartmentScreen() {
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
   const load = useCallback(async () => {
-    if (!valid) return;
+    if (!department?.id) return;
     try {
       setError(null);
-      setItems(await listPDCAByDepartment(dept));
+      setItems(await listPDCAByDepartmentId(department.id));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur");
     }
-  }, [dept, valid]);
+  }, [department?.id]);
 
   useEffect(() => {
+    if (optsLoading) return;
     (async () => {
       setLoading(true);
       await load();
       setLoading(false);
     })();
-  }, [load]);
+  }, [load, optsLoading]);
 
   const stats = useMemo(() => {
     const allActions = items.flatMap((p) => p.pdca_actions);
@@ -66,13 +72,23 @@ export default function DepartmentScreen() {
 
   const filtered = useMemo(() => applyFilters(items, filters), [items, filters]);
 
-  if (!valid) return <ErrorState message={`Département inconnu : ${dept}`} />;
+  if (optsLoading) return <LoadingState />;
+
+  if (!department) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+        <Stack.Screen options={{ title: deptLabel }} />
+        <ErrorState message={`Département inconnu : ${deptLabel}`} />
+      </View>
+    );
+  }
+
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
-      <Stack.Screen options={{ title: dept }} />
+      <Stack.Screen options={{ title: department.label }} />
 
       <View style={styles.statsRow}>
         <Stat n={stats.total} l="PDCA" />
@@ -82,26 +98,29 @@ export default function DepartmentScreen() {
       </View>
 
       <FilterBar value={filters} onChange={setFilters} />
+
       <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
         <ExportButton
-          filename={`department-${dept}`}
+          filename={`department-${department.label}`}
           headers={["Référence","Sujet","Ligne","Priorité","Statut","Créé le","Nb actions"]}
-          rows={() => filtered.map((p) => [
-            p.reference,
-            p.subject,
-            p.line,
-            p.priority,
-            p.status,
-            new Date(p.created_at).toLocaleDateString("fr-FR"),
-            p.pdca_actions.length,
-          ])}
+          rows={() =>
+            filtered.map((p) => [
+              p.reference,
+              p.subject,
+              p.line,
+              p.priority,
+              p.status,
+              new Date(p.created_at).toLocaleDateString("fr-FR"),
+              p.pdca_actions.length,
+            ])
+          }
         />
       </View>
 
       {filtered.length === 0 ? (
         <EmptyState
           title="Aucun PDCA"
-          subtitle={`Rien à afficher pour ${dept}.`}
+          subtitle={`Rien à afficher pour ${department.label}.`}
         />
       ) : (
         <FlatList<PDCAWithActions>

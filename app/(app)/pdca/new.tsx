@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,20 +19,14 @@ import { ActionCard } from "@/components/ActionCard";
 import { PDCAProgressBar } from "@/components/PDCAProgressBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/ui/UIProvider";
+import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import {
   createPDCA,
   errorMessage,
   ActionDraft,
   PDCADraft,
 } from "@/services/pdcaService";
-import {
-  DEFECT_TYPES,
-  DEPARTMENTS,
-  LINES,
-  PILOTS,
-  PRIORITIES,
-  PHASE_TO_PROGRESS,
-} from "@/constants/options";
+import { PHASE_TO_PROGRESS } from "@/constants/options";
 import type { PDCAPhase, Priority, PDCAActionRow } from "@/types/database";
 import { theme } from "@/theme";
 
@@ -49,9 +44,19 @@ const emptyAction = (): ActionForm => ({
   status: "OPEN",
 });
 
+const PRIORITIES: { value: Priority; label: string }[] = [
+  { value: "LOW", label: "Faible" },
+  { value: "MEDIUM", label: "Moyenne" },
+  { value: "HIGH", label: "Élevée" },
+];
+
 export default function NewPDCA() {
   const { session } = useAuth();
   const { alert, toast } = useUI();
+
+  // Load configurable options from Supabase
+  const { lines, departments, pilots, defectTypes, loading: optsLoading } =
+    useCompanyOptions();
 
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
@@ -70,8 +75,16 @@ export default function NewPDCA() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Reset all fields every time the screen gains focus,
-  // so users always start with a blank template.
+  const priorityLabels = useMemo(() => PRIORITIES.map((p) => p.label), []);
+  const priorityFromLabel = (l: string): Priority =>
+    PRIORITIES.find((p) => p.label === l)?.value ?? "MEDIUM";
+
+  const lineLabels = useMemo(() => lines.map((l) => l.label), [lines]);
+  const deptLabels = useMemo(() => departments.map((d) => d.label), [departments]);
+  const pilotLabels = useMemo(() => pilots.map((p) => p.label), [pilots]);
+  const defectLabels = useMemo(() => defectTypes.map((d) => d.label), [defectTypes]);
+
+  // Reset form when screen gains focus
   useFocusEffect(
     React.useCallback(() => {
       setSubject("");
@@ -83,7 +96,7 @@ export default function NewPDCA() {
       setPriority("MEDIUM");
       setDepartment(null);
       setPilotOther("");
-    setPilotIsOther(false);
+      setPilotIsOther(false);
       setActions([]);
       setEditing(null);
       setErrors({});
@@ -91,11 +104,6 @@ export default function NewPDCA() {
       return undefined;
     }, []),
   );
-
-
-  const priorityLabels = useMemo(() => PRIORITIES.map((p) => p.label), []);
-  const priorityFromLabel = (l: string): Priority =>
-    PRIORITIES.find((p) => p.label === l)?.value ?? "MEDIUM";
 
   const resetAll = () => {
     setSubject("");
@@ -171,20 +179,13 @@ export default function NewPDCA() {
       setSubmitting(true);
       const created = await createPDCA(draft, session.user.id);
       toast.success(`PDCA ${created.reference} créé`);
-      // Si un département a été choisi, on va sur sa page ; sinon on va au détail du PDCA
-      if (draft.department) {
-        router.replace(`/(app)/department/${draft.department}`);
-      } else {
-        // Si un département a été choisi, on va sur sa page ; sinon on va au détail du PDCA
       if (draft.department) {
         router.replace(`/(app)/department/${draft.department}`);
       } else {
         router.replace(`/(app)/pdca/${created.id}`);
       }
-      }
     } catch (err) {
-      const msg = errorMessage(err);
-      alert({ title: "Erreur", message: msg });
+      alert({ title: "Erreur", message: errorMessage(err) });
     } finally {
       setSubmitting(false);
     }
@@ -201,11 +202,22 @@ export default function NewPDCA() {
     phase: a.phase,
     progress: PHASE_TO_PROGRESS[a.phase],
     status: a.status,
+    company_id: null,
     created_at: "",
     updated_at: "",
     completed_at: null,
-    company_id: null,
   }));
+
+  if (optsLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+        <ActivityIndicator color={theme.colors.primary} size="large" />
+        <Text style={{ marginTop: 12, color: theme.colors.textMuted }}>
+          Chargement de la configuration…
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -235,7 +247,7 @@ export default function NewPDCA() {
           <Select
             label="Ligne / Poste"
             value={line}
-            options={LINES}
+            options={lineLabels}
             onChange={setLine}
             required
             error={errors.line}
@@ -252,7 +264,7 @@ export default function NewPDCA() {
           <Select
             label="Type de défaut"
             value={defectType}
-            options={DEFECT_TYPES}
+            options={defectLabels}
             onChange={setDefectType}
           />
           {defectType === "Autre" && (
@@ -271,7 +283,7 @@ export default function NewPDCA() {
           <Select
             label="Département"
             value={department}
-            options={DEPARTMENTS}
+            options={deptLabels}
             onChange={setDepartment}
           />
         </Card>
@@ -323,7 +335,7 @@ export default function NewPDCA() {
             <Select
               label="Pilote"
               value={pilotIsOther ? "Autre" : editing.pilot_name}
-              options={PILOTS}
+              options={pilotLabels}
               required
               error={errors.pilot_name}
               onChange={(v) => {

@@ -247,6 +247,33 @@ export async function listPDCAByDepartment(
   }));
 }
 
+
+export async function listPDCAByDepartmentId(
+  departmentId: string,
+): Promise<PDCAWithActions[]> {
+  const { data: pdcas, error: e1 } = await supabase
+    .from("pdca")
+    .select("*")
+    .eq("department_id", departmentId)
+    .order("created_at", { ascending: false });
+  if (e1) throw e1;
+  const parentRows = (pdcas ?? []) as PDCARow[];
+  if (parentRows.length === 0) return [];
+
+  const ids = parentRows.map((p) => p.id);
+  const { data: actions, error: e2 } = await supabase
+    .from("pdca_actions")
+    .select("*")
+    .in("pdca_id", ids);
+  if (e2) throw e2;
+
+  const byPdca = groupActions((actions ?? []) as PDCAActionRow[]);
+  return parentRows.map((p) => ({
+    ...p,
+    pdca_actions: byPdca.get(p.id) ?? [],
+  }));
+}
+
 export interface PilotSummary {
   pilot_name: string;
   pdca_ids: string[];
