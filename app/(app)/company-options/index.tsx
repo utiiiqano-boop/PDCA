@@ -68,6 +68,7 @@ export default function CompanyOptionsScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.tabsScroll}
         contentContainerStyle={styles.tabs}
       >
         {TABS.map((k) => {
@@ -99,10 +100,12 @@ export default function CompanyOptionsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.bg },
+  tabsScroll: { flexGrow: 0, flexShrink: 0, maxHeight: 60 },
   tabs: {
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
+    alignItems: "center",
   },
   tab: {
     paddingHorizontal: 14,

@@ -25,6 +25,7 @@ export type ProfileRow = {
   company_id: string | null;
   expo_push_token: string | null;
   active: boolean;
+  is_admin: boolean;
   created_at: string;
   updated_at: string;
 };
