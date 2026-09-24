@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   FlatList,
   Pressable,
@@ -59,6 +60,12 @@ export default function DepartmentScreen() {
       setLoading(false);
     })();
   }, [load, optsLoading]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!optsLoading) load();
+    }, [load, optsLoading]),
+  );
 
   const stats = useMemo(() => {
     const allActions = items.flatMap((p) => p.pdca_actions);

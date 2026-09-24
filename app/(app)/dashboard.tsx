@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Image,
   ScrollView,
@@ -15,6 +15,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
 import { getCompany, CompanyRow } from "@/services/companiesService";
 import { useAuth } from "@/hooks/useAuth";
+import { useFocusEffect } from "@react-navigation/native";
 import { theme } from "@/theme";
 
 export default function Dashboard() {
@@ -27,17 +28,27 @@ export default function Dashboard() {
   const companyId =
     (profile as { company_id?: string } | null)?.company_id ?? null;
 
+  const loadData = useCallback(async () => {
+    try {
+      setData(await listPDCA());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
-      try {
-        setData(await listPDCA());
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Erreur");
-      } finally {
-        setLoading(false);
-      }
+      setLoading(true);
+      await loadData();
+      setLoading(false);
     })();
-  }, []);
+  }, [loadData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
 
   useEffect(() => {
     if (!companyId) return;

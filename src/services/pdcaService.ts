@@ -6,6 +6,7 @@ import type {
   Priority,
   ActionStatus,
   PDCAHistoryRow,
+  PDCAStatus,
 } from "@/types/database";
 import { PHASE_TO_PROGRESS } from "@/constants/options";
 
@@ -593,6 +594,8 @@ export async function cancelActionWithComment(
     comment: trimmed,
   });
   if (histErr) throw histErr;
+
+  await recomputePDCAStatus(action.pdca_id);
 }
 
 export interface PhaseChangeOptions {
@@ -602,6 +605,31 @@ export interface PhaseChangeOptions {
   userId: string;
   comment?: string;
   completeStatus?: ActionStatus;
+}
+
+
+async function recomputePDCAStatus(pdcaId: string): Promise<void> {
+  const { data: actions, error } = await supabase
+    .from("pdca_actions")
+    .select("status")
+    .eq("pdca_id", pdcaId);
+  if (error) return;
+  const rows = (actions ?? []) as Array<{ status: ActionStatus }>;
+  if (rows.length === 0) return;
+
+  const active = rows.filter((a) => a.status !== "CANCELLED");
+  if (active.length === 0) {
+    // Toutes annulées
+    await supabase.from("pdca").update({ status: "CANCELLED" }).eq("id", pdcaId);
+    return;
+  }
+
+  let status: PDCAStatus = "OPEN";
+  if (active.every((a) => a.status === "COMPLETED")) status = "COMPLETED";
+  else if (active.some((a) => a.status === "OVERDUE")) status = "OVERDUE";
+  else if (active.some((a) => a.status === "IN_PROGRESS" || a.status === "COMPLETED")) status = "IN_PROGRESS";
+
+  await supabase.from("pdca").update({ status }).eq("id", pdcaId);
 }
 
 export async function applyPhaseChange(opts: PhaseChangeOptions): Promise<void> {
@@ -634,4 +662,8 @@ export async function applyPhaseChange(opts: PhaseChangeOptions): Promise<void> 
     new_value: opts.phase,
     comment: opts.comment ?? null,
   });
+
+  if (pdcaId) {
+    await recomputePDCAStatus(pdcaId);
+  }
 }
