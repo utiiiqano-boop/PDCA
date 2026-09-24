@@ -275,7 +275,12 @@ export async function listPDCAByDepartmentId(
 }
 
 export interface PilotSummary {
+  /** pilot_id (FK) if available, else "legacy:<name>" */
+  key: string;
+  /** Current display label from company_pilots, or fallback to raw pilot_name */
   pilot_name: string;
+  /** company_pilots.id if available */
+  pilot_id: string | null;
   pdca_ids: string[];
   total_actions: number;
   open_actions: number;
@@ -283,19 +288,47 @@ export interface PilotSummary {
   overdue_actions: number;
   completed_actions: number;
   cancelled_actions: number;
-  completion_rate: number; // 0-100 (excludes cancelled)
+  completion_rate: number;
 }
 
 export async function listPilotSummaries(): Promise<PilotSummary[]> {
-  const { data, error } = await supabase.from("pdca_actions").select("*");
-  if (error) throw error;
+  // 1. Load all actions of the company
+  const { data: actionsData, error: aErr } = await supabase
+    .from("pdca_actions")
+    .select("id, pdca_id, pilot_id, pilot_name, status");
+  if (aErr) throw aErr;
+  const actions = (actionsData ?? []) as Array<{
+    id: string;
+    pdca_id: string;
+    pilot_id: string | null;
+    pilot_name: string;
+    status: ActionStatus;
+  }>;
 
-  const map = new Map<string, PilotSummary>();
-  for (const row of (data ?? []) as PDCAActionRow[]) {
-    const key = row.pilot_name?.trim() || "—";
-    if (!map.has(key)) {
-      map.set(key, {
-        pilot_name: key,
+  // 2. Load pilots (active + inactive so old references still resolve)
+  const { data: pilotsData, error: pErr } = await supabase
+    .from("company_pilots")
+    .select("id, label, active");
+  if (pErr) throw pErr;
+  const pilotsById = new Map<string, { label: string }>();
+  for (const p of (pilotsData ?? []) as Array<{ id: string; label: string; active: boolean }>) {
+    pilotsById.set(p.id, { label: p.label });
+  }
+
+  // 3. Group actions
+  const groups = new Map<string, PilotSummary>();
+  for (const row of actions) {
+    // Prefer pilot_id; fall back to string key
+    const key = row.pilot_id ?? `legacy:${(row.pilot_name || "—").trim()}`;
+    const label = row.pilot_id
+      ? pilotsById.get(row.pilot_id)?.label ?? row.pilot_name
+      : row.pilot_name || "—";
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        pilot_name: label,
+        pilot_id: row.pilot_id,
         pdca_ids: [],
         total_actions: 0,
         open_actions: 0,
@@ -306,7 +339,9 @@ export async function listPilotSummaries(): Promise<PilotSummary[]> {
         completion_rate: 0,
       });
     }
-    const s = map.get(key)!;
+    const s = groups.get(key)!;
+    // Always re-read the current label (in case of rename)
+    s.pilot_name = label;
     s.total_actions += 1;
     if (row.status === "OPEN") s.open_actions += 1;
     if (row.status === "IN_PROGRESS") s.in_progress_actions += 1;
@@ -316,10 +351,11 @@ export async function listPilotSummaries(): Promise<PilotSummary[]> {
     if (!s.pdca_ids.includes(row.pdca_id)) s.pdca_ids.push(row.pdca_id);
   }
 
-  const list = Array.from(map.values());
+  const list = Array.from(groups.values());
   for (const s of list) {
     const active = s.total_actions - s.cancelled_actions;
-    s.completion_rate = active > 0 ? Math.round((s.completed_actions / active) * 100) : 0;
+    s.completion_rate =
+      active > 0 ? Math.round((s.completed_actions / active) * 100) : 0;
   }
 
   return list.sort((a, b) => b.total_actions - a.total_actions);

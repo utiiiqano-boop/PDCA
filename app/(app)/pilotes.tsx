@@ -8,8 +8,8 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
-import { ExportButton } from "@/components/ExportButton";
 import { ProgressBar } from "@/components/ProgressBar";
+import { ExportButton } from "@/components/ExportButton";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listPilotSummaries, PilotSummary } from "@/services/pdcaService";
 import { theme } from "@/theme";
@@ -36,7 +36,6 @@ export default function PilotesScreen() {
     }
   }, []);
 
-  // Load on first mount
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -45,7 +44,6 @@ export default function PilotesScreen() {
     })();
   }, [load]);
 
-  // Reload every time the screen gets focus (e.g. after creating a PDCA)
   useFocusEffect(
     useCallback(() => {
       load();
@@ -68,21 +66,24 @@ export default function PilotesScreen() {
           {items.length} pilote(s) • {totalActions} action(s) • {globalRate}% réalisé
         </Text>
       </View>
+
       <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
         <ExportButton
           filename="pilotes"
           headers={["Pilote","Nb PDCA","Actions totales","Terminées","En cours","Ouvertes","En retard","Annulées","Taux réalisation %"]}
-          rows={() => items.map((p) => [
-            p.pilot_name,
-            p.pdca_ids.length,
-            p.total_actions,
-            p.completed_actions,
-            p.in_progress_actions,
-            p.open_actions,
-            p.overdue_actions,
-            p.cancelled_actions,
-            p.completion_rate,
-          ])}
+          rows={() =>
+            items.map((p) => [
+              p.pilot_name,
+              p.pdca_ids.length,
+              p.total_actions,
+              p.completed_actions,
+              p.in_progress_actions,
+              p.open_actions,
+              p.overdue_actions,
+              p.cancelled_actions,
+              p.completion_rate,
+            ])
+          }
         />
       </View>
 
@@ -95,7 +96,7 @@ export default function PilotesScreen() {
         <FlatList<PilotSummary>
           contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
           data={items}
-          keyExtractor={(it: PilotSummary) => it.pilot_name}
+          keyExtractor={(it: PilotSummary) => it.key}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -109,7 +110,12 @@ export default function PilotesScreen() {
           renderItem={({ item }: { item: PilotSummary }) => (
             <Card>
               <View style={styles.pilotHead}>
-                <View style={[styles.avatar, { backgroundColor: rateColor(item.completion_rate) }]}>
+                <View
+                  style={[
+                    styles.avatar,
+                    { backgroundColor: rateColor(item.completion_rate) },
+                  ]}
+                >
                   <Text style={styles.avatarText}>
                     {item.pilot_name.charAt(0).toUpperCase()}
                   </Text>
