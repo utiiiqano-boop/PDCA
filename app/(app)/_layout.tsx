@@ -2,12 +2,14 @@ import React from "react";
 import { Drawer } from "expo-router/drawer";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationTap } from "@/hooks/useNotificationTap";
 import { LoadingState } from "@/components/States";
 import { DrawerContent } from "@/components/DrawerContent";
 import { theme } from "@/theme";
 
 export default function AppLayout() {
   const { session, loading } = useAuth();
+  useNotificationTap();
   if (loading) return <LoadingState />;
   if (!session) return <Redirect href="/(auth)/login" />;
 
