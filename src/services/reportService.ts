@@ -141,6 +141,8 @@ export function computeWeeklyReport(
   weekStart: Date,
   weekEnd: Date,
   company: CompanyRow | null,
+  resolveDepartment: (id: string | null | undefined, fallback: string) => string = (_id, f) => f,
+  resolveDefect: (id: string | null | undefined, fallback: string) => string = (_id, f) => f,
 ): WeeklyReportData {
   const inRange = (iso: string | null) => {
     if (!iso) return false;
@@ -160,7 +162,7 @@ export function computeWeeklyReport(
   const overdue = actions.filter((a) => a.status === "OVERDUE").length;
   const completed = actions.filter((a) => a.status === "COMPLETED").length;
 
-  const topBy = (keyFn: (x: PDCAWithActions) => string | null) => {
+  const topBy = (keyFn: (x: PDCAWithActions) => string) => {
     const m = new Map<string, number>();
     for (const x of items) {
       const k = keyFn(x) ?? "—";
@@ -194,8 +196,8 @@ export function computeWeeklyReport(
     actionsOpen: open,
     actionsOverdue: overdue,
     actionsCompleted: completed,
-    topDefects: topBy((p) => p.defect_type),
-    topDepartments: topBy((p) => p.department),
+    topDefects: topBy((p) => resolveDefect(p.defect_type_id, p.defect_type ?? '—')),
+    topDepartments: topBy((p) => resolveDepartment(p.department_id, p.department ?? '—')),
     topPilots,
   };
 }

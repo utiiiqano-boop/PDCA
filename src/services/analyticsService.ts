@@ -8,6 +8,11 @@ export interface Datum {
   color?: string;
 }
 
+/** Maps an option ID to its current label (may be undefined if not found). */
+export type LabelResolver = (id: string | null | undefined, fallback: string) => string;
+
+const identityResolver: LabelResolver = (_id, fallback) => fallback;
+
 const PRIORITY_COLORS: Record<Priority, string> = {
   LOW: "#16a34a",
   MEDIUM: "#f59e0b",
@@ -27,11 +32,14 @@ const PRIORITY_LABELS: Record<Priority, string> = {
   HIGH: "Élevée",
 };
 
-export function pdcaByDepartment(items: PDCAWithActions[]): Datum[] {
+export function pdcaByDepartment(
+  items: PDCAWithActions[],
+  resolve: LabelResolver = identityResolver,
+): Datum[] {
   const map = new Map<string, number>();
   for (const p of items) {
-    const k = p.department ?? "—";
-    map.set(k, (map.get(k) ?? 0) + 1);
+    const key = resolve(p.department_id, p.department ?? "—");
+    map.set(key, (map.get(key) ?? 0) + 1);
   }
   return [...map.entries()]
     .map(([label, value]) => ({ label, value }))
@@ -50,11 +58,17 @@ export function pdcaByPriority(items: PDCAWithActions[]): Datum[] {
   }));
 }
 
-export function pdcaByDefectType(items: PDCAWithActions[]): Datum[] {
+export function pdcaByDefectType(
+  items: PDCAWithActions[],
+  resolve: LabelResolver = identityResolver,
+): Datum[] {
   const map = new Map<string, number>();
   for (const p of items) {
-    const k = p.defect_type ?? "Non renseigné";
-    map.set(k, (map.get(k) ?? 0) + 1);
+    const key = resolve(
+      p.defect_type_id,
+      p.defect_type ?? "Non renseigné",
+    );
+    map.set(key, (map.get(key) ?? 0) + 1);
   }
   return [...map.entries()]
     .map(([label, value]) => ({ label, value }))

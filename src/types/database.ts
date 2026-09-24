@@ -41,6 +41,9 @@ export type PDCARow = {
   priority: Priority;
   department: string | null;
   status: PDCAStatus;
+  line_id: string | null;
+  department_id: string | null;
+  defect_type_id: string | null;
   company_id: string | null;
   created_by: string | null;
   created_at: string;

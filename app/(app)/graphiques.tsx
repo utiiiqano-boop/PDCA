@@ -13,9 +13,21 @@ import {
   pdcaByDepartment,
   pdcaByPriority,
 } from "@/services/analyticsService";
+import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { theme } from "@/theme";
 
 export default function Graphiques() {
+  const { departments, defectTypes } = useCompanyOptions();
+
+  const resolveDept = (id: string | null | undefined, fallback: string) => {
+    if (!id) return fallback;
+    return departments.find((d) => d.id === id)?.label ?? fallback;
+  };
+  const resolveDefect = (id: string | null | undefined, fallback: string) => {
+    if (!id) return fallback;
+    return defectTypes.find((d) => d.id === id)?.label ?? fallback;
+  };
+
   const [items, setItems] = useState<PDCAWithActions[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,7 +87,7 @@ export default function Graphiques() {
 
       <Card>
         <Text style={styles.h2}>1. PDCA par département</Text>
-        <BarChart data={pdcaByDepartment(items)} />
+        <BarChart data={pdcaByDepartment(items, resolveDept)} />
       </Card>
 
       <Card>
@@ -85,7 +97,7 @@ export default function Graphiques() {
 
       <Card>
         <Text style={styles.h2}>3. PDCA par type de défaut</Text>
-        <BarChart data={pdcaByDefectType(items)} />
+        <BarChart data={pdcaByDefectType(items, resolveDefect)} />
       </Card>
 
       <Card>

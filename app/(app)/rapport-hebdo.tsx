@@ -9,6 +9,7 @@ import { computeWeeklyReport, exportWeeklyReport } from "@/services/reportServic
 import { getCompany, CompanyRow } from "@/services/companiesService";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/ui/UIProvider";
+import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { theme } from "@/theme";
 
 function startOfWeek(d: Date): Date {
@@ -40,6 +41,16 @@ export default function RapportHebdo() {
   const { profile } = useAuth();
   const { toast } = useUI();
   const [company, setCompany] = useState<CompanyRow | null>(null);
+  const { departments, defectTypes } = useCompanyOptions();
+
+  const resolveDept = (id: string | null | undefined, fallback: string) => {
+    if (!id) return fallback;
+    return departments.find((d) => d.id === id)?.label ?? fallback;
+  };
+  const resolveDefect = (id: string | null | undefined, fallback: string) => {
+    if (!id) return fallback;
+    return defectTypes.find((d) => d.id === id)?.label ?? fallback;
+  };
   const [exporting, setExporting] = useState(false);
   const companyId = (profile as { company_id?: string } | null)?.company_id;
 
@@ -132,7 +143,7 @@ export default function RapportHebdo() {
   const handleExport = async () => {
     try {
       setExporting(true);
-      const data = computeWeeklyReport(items, week.start, week.end, company);
+      const data = computeWeeklyReport(items, week.start, week.end, company, resolveDept, resolveDefect);
       await exportWeeklyReport(data);
       toast.success("Rapport généré");
     } catch (e) {
