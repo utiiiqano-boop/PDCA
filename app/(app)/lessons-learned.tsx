@@ -9,13 +9,17 @@ import {
   Text,
   View,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
-import { ExportButton } from "@/components/ExportButton";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Select } from "@/components/Select";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { FilterBar, FilterState, defaultFilters } from "@/components/FilterBar";
+import { ExportButton } from "@/components/ExportButton";
+import { useAuth } from "@/hooks/useAuth";
+import { useUI } from "@/ui/UIProvider";
 import {
   LessonLearned,
   LessonInsert,
@@ -24,14 +28,26 @@ import {
   listLessons,
 } from "@/services/lessonsService";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
-import { useLocalSearchParams } from "expo-router";
-import { useAuth } from "@/hooks/useAuth";
-import { useUI } from "@/ui/UIProvider";
 import { theme } from "@/theme";
 
+function fmtDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  } catch {
+    return iso;
+  }
+}
+
 export default function LessonsLearnedScreen() {
+  // ── 1. ALL HOOKS FIRST ────────────────────────────────
   const { session } = useAuth();
-  const { alert, toast } = useUI();
+  const { toast, confirm, alert } = useUI();
+  const { pdcaId: pdcaIdParam } = useLocalSearchParams<{ pdcaId?: string }>();
+
   const [items, setItems] = useState<LessonLearned[]>([]);
   const [pdcas, setPdcas] = useState<PDCAWithActions[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,11 +55,6 @@ export default function LessonsLearnedScreen() {
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
   const [showForm, setShowForm] = useState(false);
-  const { pdcaId } = useLocalSearchParams<{ pdcaId?: string }>();
-
-  useEffect(() => {
-    if (pdcaId) setShowForm(true);
-  }, [pdcaId]);
 
   const load = async () => {
     try {
@@ -64,19 +75,94 @@ export default function LessonsLearnedScreen() {
     })();
   }, []);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      load();
+    }, []),
+  );
+
+  useEffect(() => {
+    if (pdcaIdParam) setShowForm(true);
+  }, [pdcaIdParam]);
+
   const filtered = useMemo(() => {
     const q = filters.search.trim().toLowerCase();
     if (!q) return items;
     return items.filter((ll) =>
-      `${ll.title} ${ll.problem ?? ""} ${ll.solution ?? ""}`.toLowerCase().includes(q),
+      `${ll.title} ${ll.problem ?? ""} ${ll.solution ?? ""}`
+        .toLowerCase()
+        .includes(q),
     );
   }, [items, filters.search]);
 
+  // ── 2. EARLY RETURNS ──────────────────────────────────
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
 
+  // ── 3. UI ─────────────────────────────────────────────
+  const ListHeader = (
+    <View>
+      <View style={styles.statsRow}>
+        <View style={styles.statPill}>
+          <View
+            style={[styles.statDot, { backgroundColor: theme.colors.primary }]}
+          />
+          <Text style={styles.statTxt}>
+            {items.length} leçon{items.length > 1 ? "s" : ""} enregistrée
+            {items.length > 1 ? "s" : ""}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Lessons Learned</Text>
+        <Text style={styles.sub}>
+          Retours d'expérience des PDCA clôturés
+        </Text>
+      </View>
+
+      {/* Add button */}
+      <View style={styles.addWrap}>
+        <Button
+          label="+ Nouvelle leçon"
+          onPress={() => setShowForm(true)}
+        />
+      </View>
+
+      {/* Export */}
+      <View style={styles.exportWrap}>
+        <ExportButton
+          label="📊 Exporter la vue (7 colonnes)"
+          filename="lessons-learned"
+          headers={[
+            "Titre",
+            "Problème",
+            "Cause",
+            "Solution",
+            "Résultat",
+            "Standardisation",
+            "Créé le",
+          ]}
+          rows={() =>
+            filtered.map((l) => [
+              l.title,
+              l.problem ?? "",
+              l.cause ?? "",
+              l.solution ?? "",
+              l.result ?? "",
+              l.standardization ?? "",
+              fmtDate(l.created_at),
+            ])
+          }
+        />
+      </View>
+
+      {/* Search */}
       <FilterBar
         value={filters}
         onChange={setFilters}
@@ -84,31 +170,20 @@ export default function LessonsLearnedScreen() {
         showStatus={false}
         placeholder="Rechercher une leçon…"
       />
-      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-        <Button label="+ Nouvelle leçon" onPress={() => setShowForm(true)} />
-        <View style={{ height: 8 }} />
-        <ExportButton
-          filename="lessons-learned"
-          headers={["Titre","Problème","Cause","Solution","Résultat","Standardisation","Créé le"]}
-          rows={() => filtered.map((l) => [
-            l.title,
-            l.problem ?? "",
-            l.cause ?? "",
-            l.solution ?? "",
-            l.result ?? "",
-            l.standardization ?? "",
-            new Date(l.created_at).toLocaleDateString("fr-FR"),
-          ])}
-        />
-      </View>
 
+      {/* List */}
       {filtered.length === 0 ? (
-        <EmptyState title="Aucune leçon" subtitle="Enregistrez vos retours d'expérience." />
+        <EmptyState
+          title="Aucune leçon"
+          subtitle="Enregistrez vos retours d'expérience après chaque PDCA clôturé."
+          icon="💡"
+        />
       ) : (
         <FlatList<LessonLearned>
-          contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
           data={filtered}
           keyExtractor={(it: LessonLearned) => it.id}
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -123,55 +198,65 @@ export default function LessonsLearnedScreen() {
             const pdca = pdcas.find((p) => p.id === item.pdca_id);
             return (
               <Card>
-                <Text style={styles.title}>{item.title}</Text>
+                {/* Header */}
+                <View style={styles.cardHead}>
+                  <View style={styles.titleWrap}>
+                    <Text style={styles.cardIcon}>💡</Text>
+                    <Text style={styles.cardTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* PDCA link */}
                 {pdca ? (
-                  <Text style={styles.ref}>
-                    {pdca.reference} • {pdca.subject}
-                  </Text>
+                  <View style={styles.pdcaTag}>
+                    <Text style={styles.pdcaTagTxt}>
+                      {pdca.reference} · {pdca.subject}
+                    </Text>
+                  </View>
                 ) : null}
+
+                {/* Content */}
                 {item.problem ? (
-                  <Text style={styles.block}>
-                    <Text style={styles.blockLabel}>Problème : </Text>
-                    {item.problem}
-                  </Text>
+                  <Block label="Problème" value={item.problem} />
                 ) : null}
-                {item.cause ? (
-                  <Text style={styles.block}>
-                    <Text style={styles.blockLabel}>Cause : </Text>
-                    {item.cause}
-                  </Text>
-                ) : null}
+                {item.cause ? <Block label="Cause" value={item.cause} /> : null}
                 {item.solution ? (
-                  <Text style={styles.block}>
-                    <Text style={styles.blockLabel}>Solution : </Text>
-                    {item.solution}
-                  </Text>
+                  <Block label="Solution" value={item.solution} />
                 ) : null}
-                {item.result ? (
-                  <Text style={styles.block}>
-                    <Text style={styles.blockLabel}>Résultat : </Text>
-                    {item.result}
-                  </Text>
-                ) : null}
+                {item.result ? <Block label="Résultat" value={item.result} /> : null}
                 {item.standardization ? (
-                  <Text style={styles.block}>
-                    <Text style={styles.blockLabel}>Standardisation : </Text>
-                    {item.standardization}
-                  </Text>
+                  <Block label="Standardisation" value={item.standardization} />
                 ) : null}
-                <View style={{ marginTop: 10 }}>
-                  <Button
-                    label="Supprimer"
-                    variant="danger"
+
+                {/* Footer */}
+                <View style={styles.cardFooter}>
+                  <Text style={styles.date}>{fmtDate(item.created_at)}</Text>
+                  <Pressable
                     onPress={async () => {
+                      const ok = await confirm({
+                        title: "Supprimer cette leçon ?",
+                        message: "Cette action est irréversible.",
+                        confirmLabel: "Supprimer",
+                        destructive: true,
+                      });
+                      if (!ok) return;
                       try {
                         await deleteLesson(item.id);
+                        toast.info("Leçon supprimée");
                         await load();
                       } catch (e) {
-                        alert({ title: "Erreur", message: e instanceof Error ? e.message : "Erreur" });
+                        alert({
+                          title: "Erreur",
+                          message: e instanceof Error ? e.message : "Erreur",
+                        });
                       }
                     }}
-                  />
+                    style={styles.deleteBtn}
+                  >
+                    <Text style={styles.deleteTxt}>Supprimer</Text>
+                  </Pressable>
                 </View>
               </Card>
             );
@@ -179,18 +264,24 @@ export default function LessonsLearnedScreen() {
         />
       )}
 
+      {/* Modal */}
       <LessonForm
         visible={showForm}
         pdcas={pdcas}
+        initialPdcaId={pdcaIdParam}
         onClose={() => setShowForm(false)}
         onSubmit={async (payload) => {
           if (!session?.user) return;
           try {
             await createLesson({ ...payload, created_by: session.user.id });
             setShowForm(false);
+            toast.success("Leçon enregistrée");
             await load();
           } catch (e) {
-            alert({ title: "Erreur", message: e instanceof Error ? e.message : "Erreur" });
+            alert({
+              title: "Erreur",
+              message: e instanceof Error ? e.message : "Erreur",
+            });
           }
         }}
       />
@@ -198,14 +289,25 @@ export default function LessonsLearnedScreen() {
   );
 }
 
+function Block({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.block}>
+      <Text style={styles.blockLabel}>{label}</Text>
+      <Text style={styles.blockValue}>{value}</Text>
+    </View>
+  );
+}
+
 function LessonForm({
   visible,
   pdcas,
+  initialPdcaId,
   onClose,
   onSubmit,
 }: {
   visible: boolean;
   pdcas: PDCAWithActions[];
+  initialPdcaId?: string;
   onClose: () => void;
   onSubmit: (payload: Omit<LessonInsert, "created_by">) => Promise<void>;
 }) {
@@ -218,6 +320,17 @@ function LessonForm({
   const [standardization, setStandardization] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const references = pdcas.map((p) => `${p.reference} — ${p.subject}`);
+
+  // Pre-fill when opened with a pdcaId (from PhaseCompleteModal redirect)
+  useEffect(() => {
+    if (!visible) return;
+    if (initialPdcaId) {
+      const match = pdcas.find((p) => p.id === initialPdcaId);
+      if (match) setPdcaRef(`${match.reference} — ${match.subject}`);
+    }
+  }, [visible, initialPdcaId, pdcas]);
+
   const reset = () => {
     setTitle("");
     setPdcaRef(null);
@@ -228,16 +341,16 @@ function LessonForm({
     setStandardization("");
   };
 
-  const references = pdcas.map((p) => `${p.reference} — ${p.subject}`);
-
   const submit = async () => {
     if (!title.trim()) {
-      alert({ title: "Validation", message: "Titre obligatoire." });
+      Alert.alert("Validation", "Titre obligatoire.");
       return;
     }
     setBusy(true);
     try {
-      const pdca = pdcaRef ? pdcas.find((p) => `${p.reference} — ${p.subject}` === pdcaRef) : null;
+      const pdca = pdcaRef
+        ? pdcas.find((p) => `${p.reference} — ${p.subject}` === pdcaRef)
+        : null;
       await onSubmit({
         title: title.trim(),
         pdca_id: pdca?.id ?? null,
@@ -255,8 +368,15 @@ function LessonForm({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <ScrollView contentContainerStyle={styles.modalBody}>
+      <ScrollView
+        style={styles.modalRoot}
+        contentContainerStyle={styles.modalBody}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.modalTitle}>Nouvelle leçon apprise</Text>
+        <Text style={styles.modalSub}>
+          Capturez ce qui a fonctionné (ou non) pour les prochains PDCA
+        </Text>
 
         <Input label="Titre" value={title} onChangeText={setTitle} required />
         <Select
@@ -264,11 +384,27 @@ function LessonForm({
           value={pdcaRef}
           options={references}
           onChange={setPdcaRef}
+          placeholder="Aucun (facultatif)"
         />
-        <Input label="Problème" value={problem} onChangeText={setProblem} multiline />
+        <Input
+          label="Problème"
+          value={problem}
+          onChangeText={setProblem}
+          multiline
+        />
         <Input label="Cause" value={cause} onChangeText={setCause} multiline />
-        <Input label="Solution" value={solution} onChangeText={setSolution} multiline />
-        <Input label="Résultat" value={result} onChangeText={setResult} multiline />
+        <Input
+          label="Solution"
+          value={solution}
+          onChangeText={setSolution}
+          multiline
+        />
+        <Input
+          label="Résultat"
+          value={result}
+          onChangeText={setResult}
+          multiline
+        />
         <Input
           label="Standardisation"
           value={standardization}
@@ -276,9 +412,9 @@ function LessonForm({
           multiline
         />
 
-        <View style={{ height: 12 }} />
+        <View style={{ height: theme.spacing(3) }} />
         <Button label="Enregistrer" onPress={submit} loading={busy} />
-        <View style={{ height: 8 }} />
+        <View style={{ height: theme.spacing(2) }} />
         <Button label="Annuler" variant="secondary" onPress={onClose} />
       </ScrollView>
     </Modal>
@@ -286,15 +422,140 @@ function LessonForm({
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 16, fontWeight: "700", color: theme.colors.text },
-  ref: { fontSize: 12, color: theme.colors.primary, marginTop: 4 },
-  block: { fontSize: 13, color: theme.colors.text, marginTop: 6 },
-  blockLabel: { fontWeight: "700" },
-  modalBody: { padding: 20, paddingBottom: 60, backgroundColor: theme.colors.bg },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "800",
+  container: { flex: 1, backgroundColor: theme.colors.bg },
+
+  // ── Header ────────────────────────────────────
+  header: {
+    paddingHorizontal: theme.spacing(4),
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(3),
+  },
+  title: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
     color: theme.colors.text,
-    marginBottom: 16,
+  },
+  sub: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+  },
+  addWrap: {
+    paddingHorizontal: theme.spacing(4),
+    marginBottom: theme.spacing(2),
+  },
+  exportWrap: {
+    paddingHorizontal: theme.spacing(4),
+    marginBottom: theme.spacing(3),
+  },
+
+  // ── Stats ─────────────────────────────────────
+  statsRow: {
+    flexDirection: "row",
+    paddingHorizontal: theme.spacing(4),
+    gap: theme.spacing(3),
+    marginBottom: theme.spacing(4),
+    flexWrap: "wrap",
+  },
+  statPill: { flexDirection: "row", alignItems: "center", gap: 6 },
+  statDot: { width: 8, height: 8, borderRadius: 4 },
+  statTxt: {
+    fontSize: theme.font.size.sm,
+    color: theme.colors.textMuted,
+    fontWeight: theme.font.weight.medium,
+  },
+
+  // ── List ──────────────────────────────────────
+  listContent: {
+    paddingHorizontal: theme.spacing(4),
+    paddingBottom: 60,
+  },
+
+  // ── Card ──────────────────────────────────────
+  cardHead: { marginBottom: theme.spacing(3) },
+  titleWrap: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: theme.spacing(2),
+  },
+  cardIcon: { fontSize: 20 },
+  cardTitle: {
+    flex: 1,
+    fontSize: theme.font.size.md,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.text,
+    lineHeight: 22,
+  },
+
+  pdcaTag: {
+    backgroundColor: theme.colors.primarySoft,
+    paddingHorizontal: theme.spacing(3),
+    paddingVertical: theme.spacing(2),
+    borderRadius: theme.radius.md,
+    marginBottom: theme.spacing(3),
+    alignSelf: "flex-start",
+    maxWidth: "100%",
+  },
+  pdcaTagTxt: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.primary,
+    fontWeight: theme.font.weight.semibold,
+  },
+
+  // ── Blocks ────────────────────────────────────
+  block: {
+    marginBottom: theme.spacing(3),
+    paddingLeft: theme.spacing(3),
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.divider,
+  },
+  blockLabel: {
+    fontSize: 10,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  blockValue: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.text,
+    lineHeight: 20,
+  },
+
+  // ── Footer ────────────────────────────────────
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: theme.spacing(3),
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.divider,
+  },
+  date: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.textMuted,
+    fontWeight: theme.font.weight.medium,
+  },
+  deleteBtn: { paddingVertical: 4, paddingHorizontal: 8 },
+  deleteTxt: {
+    color: theme.colors.danger,
+    fontWeight: theme.font.weight.semibold,
+    fontSize: theme.font.size.sm,
+  },
+
+  // ── Modal ─────────────────────────────────────
+  modalRoot: { flex: 1, backgroundColor: theme.colors.bg },
+  modalBody: { padding: theme.spacing(5), paddingBottom: 60 },
+  modalTitle: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.text,
+  },
+  modalSub: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(5),
   },
 });
