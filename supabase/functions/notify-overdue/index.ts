@@ -2,6 +2,25 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
+const T = {
+  fr: {
+    title: "Actions en retard",
+    body: (n: number) => `${n} action(s) en retard vous sont assignées.`,
+  },
+  en: {
+    title: "Overdue actions",
+    body: (n: number) => `${n} overdue action(s) assigned to you.`,
+  },
+  ar: {
+    title: "إجراءات متأخرة",
+    body: (n: number) => `${n} إجراء متأخر مُسند إليك.`,
+  },
+} as const;
+
+type Lang = keyof typeof T;
+const langOf = (l: unknown): Lang =>
+  l === "en" || l === "ar" ? l : "fr";
+
 Deno.serve(async () => {
   try {
     const url = Deno.env.get("SUPABASE_URL");
@@ -51,21 +70,22 @@ Deno.serve(async () => {
       .filter((k) => k.startsWith("id:"))
       .map((k) => k.slice(3));
 
-    const byPilotIdProfile = new Map<string, { full_name: string; role: string; company_id: string; token: string }>();
+    const byPilotIdProfile = new Map<string, { full_name: string; role: string; company_id: string; token: string; language: string | null }>();
     if (idsFromPilotId.length > 0) {
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, full_name, role, company_id, expo_push_token")
+        .select("id, full_name, role, company_id, expo_push_token, language")
         .in("id", idsFromPilotId)
         .not("expo_push_token", "is", null);
       for (const p of (profs ?? []) as Array<{
-        id: string; full_name: string; role: string; company_id: string; expo_push_token: string;
+        id: string; full_name: string; role: string; company_id: string; expo_push_token: string; language: string | null;
       }>) {
         byPilotIdProfile.set(p.id, {
           full_name: p.full_name,
           role: p.role,
           company_id: p.company_id,
           token: p.expo_push_token,
+          language: p.language,
         });
       }
     }
@@ -73,7 +93,7 @@ Deno.serve(async () => {
     // Load profiles (fallback by name)
     const { data: allProfs } = await supabase
       .from("profiles")
-      .select("full_name, role, company_id, expo_push_token")
+      .select("full_name, role, company_id, expo_push_token, language")
       .not("expo_push_token", "is", null);
 
     const messages: Array<{
@@ -89,11 +109,12 @@ Deno.serve(async () => {
         const pid = key.slice(3);
         const prof = byPilotIdProfile.get(pid);
         if (!prof) continue;
+        const tt = T[langOf(prof.language)];
         messages.push({
           to: prof.token,
           sound: "default",
-          title: "Actions en retard",
-          body: `${info.count} action(s) en retard vous sont assignées.`,
+          title: tt.title,
+          body: tt.body(info.count),
           data: { type: "overdue", count: info.count },
         });
       } else {
@@ -108,11 +129,12 @@ Deno.serve(async () => {
             p.expo_push_token,
         );
         for (const p of matches) {
+          const tt = T[langOf(p.language)];
           messages.push({
             to: p.expo_push_token,
             sound: "default",
-            title: "Actions en retard",
-            body: `${info.count} action(s) en retard vous sont assignées.`,
+            title: tt.title,
+            body: tt.body(info.count),
             data: { type: "overdue", count: info.count },
           });
         }

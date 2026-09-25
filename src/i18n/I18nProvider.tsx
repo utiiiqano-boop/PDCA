@@ -9,6 +9,7 @@ import { I18nManager, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { translations, Language } from "./translations";
+import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "pdca.language";
 
@@ -92,6 +93,22 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
       applyRTL(initial === "ar");
     })();
   }, []);
+
+  // __SYNC_LANG_TO_DB__ : persist user's language to their profile
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase
+          .from("profiles")
+          .update({ language })
+          .eq("id", user.id);
+      } catch (e) {
+        console.warn("[i18n] sync language failed:", e);
+      }
+    })();
+  }, [language]);
 
   const setLanguage = useCallback(
     async (lang: Language): Promise<{ restartRequired: boolean }> => {
