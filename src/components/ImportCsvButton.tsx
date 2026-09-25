@@ -19,6 +19,7 @@ import {
 } from "@/services/csvImportService";
 import type { OptionKind } from "@/types/companyOptions";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface Props {
   kind: OptionKind;
@@ -57,6 +58,7 @@ async function pickFile(): Promise<string | null> {
 
 export function ImportCsvButton({ kind, companyId, onImported }: Props) {
   const { toast, alert } = useUI();
+  const { t: tr } = useTranslation();
   const [showPreview, setShowPreview] = useState(false);
   const [parsed, setParsed] = useState<ParseResult | null>(null);
   const [importing, setImporting] = useState(false);
@@ -68,8 +70,8 @@ export function ImportCsvButton({ kind, companyId, onImported }: Props) {
       const result = parseCsv(text);
       if (result.rows.length === 0) {
         alert({
-          title: "Fichier vide",
-          message: "Aucune ligne valide trouvée dans le CSV.",
+          title: tr("importCsv.emptyFile"),
+          message: tr("importCsv.emptyFileMsg"),
         });
         return;
       }
@@ -77,8 +79,8 @@ export function ImportCsvButton({ kind, companyId, onImported }: Props) {
       setShowPreview(true);
     } catch (e) {
       alert({
-        title: "Erreur",
-        message: e instanceof Error ? e.message : "Lecture impossible.",
+        title: tr("common.error"),
+        message: e instanceof Error ? e.message : tr("importCsv.readFailed"),
       });
     }
   };
@@ -88,14 +90,14 @@ export function ImportCsvButton({ kind, companyId, onImported }: Props) {
     try {
       setImporting(true);
       const result = await importOptions(kind, companyId, parsed.rows);
-      toast.success(`${result.total} entrée(s) importée(s)`);
+      toast.success(`${result.total} ${tr("importCsv.importedUnit")}`);
       setShowPreview(false);
       setParsed(null);
       await onImported();
     } catch (e) {
       alert({
-        title: "Erreur d'import",
-        message: e instanceof Error ? e.message : "Erreur",
+        title: tr("importCsv.importError"),
+        message: e instanceof Error ? e.message : tr("common.error"),
       });
     } finally {
       setImporting(false);
@@ -105,7 +107,7 @@ export function ImportCsvButton({ kind, companyId, onImported }: Props) {
   return (
     <>
       <Button
-        label="📁 Importer depuis CSV"
+        label={tr("importCsv.button")}
         variant="secondary"
         onPress={handlePick}
       />
@@ -119,15 +121,15 @@ export function ImportCsvButton({ kind, companyId, onImported }: Props) {
         <Pressable style={styles.backdrop} onPress={() => setShowPreview(false)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <ScrollView keyboardShouldPersistTaps="handled">
-              <Text style={styles.title}>Aperçu de l'import</Text>
+              <Text style={styles.title}>{tr("importCsv.previewTitle")}</Text>
               <Text style={styles.subtitle}>
-                {parsed?.rows.length ?? 0} entrée(s) valide(s)
+                {parsed?.rows.length ?? 0} {tr("importCsv.validUnit")}
                 {parsed?.skipped ? ` • ${parsed.skipped} ignorée(s)` : ""}
               </Text>
 
               {parsed?.duplicates && parsed.duplicates.length > 0 ? (
                 <Card style={{ marginBottom: 12 }}>
-                  <Text style={styles.warnTitle}>Doublons détectés</Text>
+                  <Text style={styles.warnTitle}>{tr("importCsv.duplicatesTitle")}</Text>
                   <Text style={styles.warnTxt}>
                     {parsed.duplicates.slice(0, 5).join(", ")}
                     {parsed.duplicates.length > 5
@@ -149,25 +151,24 @@ export function ImportCsvButton({ kind, companyId, onImported }: Props) {
                   ))}
                   {parsed && parsed.rows.length > 30 ? (
                     <Text style={styles.moreTxt}>
-                      … et {parsed.rows.length - 30} autre(s)
+                      … {tr("importCsv.importUnit").toLowerCase()} {parsed.rows.length - 30} {tr("importCsv.moreUnit")}
                     </Text>
                   ) : null}
                 </ScrollView>
               </Card>
 
               <Text style={styles.hint}>
-                Les libellés déjà existants seront mis à jour. Les nouveaux
-                seront ajoutés. Aucune entrée existante ne sera supprimée.
+                {tr("importCsv.hint")}
               </Text>
 
               <Button
-                label={`Importer ${parsed?.rows.length ?? 0} entrée(s)`}
+                label={`${tr("importCsv.importUnit")} ${parsed?.rows.length ?? 0} ${tr("importCsv.importSuffix")}`}
                 onPress={confirmImport}
                 loading={importing}
               />
               <View style={{ height: 8 }} />
               <Button
-                label="Annuler"
+                label={tr("common.cancel")}
                 variant="secondary"
                 onPress={() => setShowPreview(false)}
               />

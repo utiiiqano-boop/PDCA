@@ -6,6 +6,7 @@ import { Select } from "@/components/Select";
 import { DateField } from "@/components/DateField";
 import { PILOTS } from "@/constants/options";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 import type { PDCAActionRow } from "@/types/database";
 
 interface Props {
@@ -21,6 +22,7 @@ export function EditActionModal({ visible, action, onCancel, onSave }: Props) {
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t: tr } = useTranslation();
 
   // Sync local state when modal opens with a new action
   React.useEffect(() => {
@@ -35,18 +37,18 @@ export function EditActionModal({ visible, action, onCancel, onSave }: Props) {
   const submit = async () => {
     setError(null);
     if (!comment.trim()) {
-      setError("Un commentaire est requis pour justifier la modification.");
+      setError(tr("editAction.commentRequired"));
       return;
     }
     if (!pilot.trim()) {
-      setError("Le pilote est requis.");
+      setError(tr("editAction.pilotRequired"));
       return;
     }
     try {
       setBusy(true);
       await onSave({ pilot_name: pilot, due_date: dueDate }, comment.trim());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur inconnue");
+      setError(e instanceof Error ? e.message : tr("common.unknownError"));
     } finally {
       setBusy(false);
     }
@@ -57,7 +59,7 @@ export function EditActionModal({ visible, action, onCancel, onSave }: Props) {
       <Pressable style={styles.backdrop} onPress={onCancel}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text style={styles.title}>Modifier l'action</Text>
+            <Text style={styles.title}>{tr("editAction.title")}</Text>
             {action ? (
               <Text style={styles.actionPreview} numberOfLines={2}>
                 {action.action}
@@ -65,35 +67,35 @@ export function EditActionModal({ visible, action, onCancel, onSave }: Props) {
             ) : null}
 
             <Text style={styles.hint}>
-              Toute modification doit être justifiée. Le commentaire sera ajouté à l'historique.
+              {tr("editAction.hint")}
             </Text>
 
             <Select
-              label="Pilote"
+              label={tr("pdcaDetail.pilot")}
               value={pilot}
               options={PILOTS}
               onChange={setPilot}
               required
             />
             <DateField
-              label="Date de fin"
+              label={tr("pdcaDetail.dueDate")}
               value={dueDate}
               onChange={setDueDate}
             />
             <Input
-              label="Commentaire (raison du changement)"
+              label={tr("editAction.commentLabel")}
               value={comment}
               onChangeText={setComment}
               multiline
               required
-              placeholder="Ex : pilote absent, réassigné à Qualité"
+              placeholder={tr("editAction.commentPh")}
             />
 
             {error ? <Text style={styles.err}>{error}</Text> : null}
 
-            <Button label="Enregistrer" onPress={submit} loading={busy} />
+            <Button label={tr("common.save")} onPress={submit} loading={busy} />
             <View style={{ height: 8 }} />
-            <Button label="Annuler" variant="secondary" onPress={onCancel} />
+            <Button label={tr("common.cancel")} variant="secondary" onPress={onCancel} />
           </ScrollView>
         </Pressable>
       </Pressable>

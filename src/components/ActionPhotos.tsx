@@ -20,6 +20,7 @@ import {
   uploadActionPhoto,
 } from "@/services/photoService";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface Props {
   actionId: string;
@@ -28,6 +29,7 @@ interface Props {
 export function ActionPhotos({ actionId }: Props) {
   const { session } = useAuth();
   const { toast, confirm } = useUI();
+  const { t: tr } = useTranslation();
   const [photos, setPhotos] = useState<ActionPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -67,9 +69,9 @@ export function ActionPhotos({ actionId }: Props) {
               const uri = reader.result as string;
               const created = await uploadActionPhoto(actionId, uri, session.user.id);
               setPhotos((prev) => [created, ...prev]);
-              toast.success("Photo ajoutée");
+              toast.success(tr("actionPhotos.added"));
             } catch (err) {
-              toast.error(err instanceof Error ? err.message : "Échec");
+              toast.error(err instanceof Error ? err.message : tr("actionPhotos.failed"));
             } finally {
               setUploading(false);
             }
@@ -84,7 +86,7 @@ export function ActionPhotos({ actionId }: Props) {
       const ImagePicker = await import("expo-image-picker");
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        toast.error("Permission refusée.");
+        toast.error(tr("actionPhotos.permissionDenied"));
         setUploading(false);
         return;
       }
@@ -100,10 +102,10 @@ export function ActionPhotos({ actionId }: Props) {
           session.user.id,
         );
         setPhotos((prev) => [created, ...prev]);
-        toast.success("Photo ajoutée");
+        toast.success(tr("actionPhotos.added"));
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec de l'upload");
+      toast.error(e instanceof Error ? e.message : tr("actionPhotos.uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -111,18 +113,18 @@ export function ActionPhotos({ actionId }: Props) {
 
   const onDelete = async (photo: ActionPhoto) => {
     const ok = await confirm({
-      title: "Supprimer la photo ?",
-      message: "Cette action est irréversible.",
-      confirmLabel: "Supprimer",
+      title: tr("actionPhotos.confirmDelete"),
+      message: tr("actionPhotos.confirmDeleteSub"),
+      confirmLabel: tr("common.delete"),
       destructive: true,
     });
     if (!ok) return;
     try {
       await deleteActionPhoto(photo);
       setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
-      toast.info("Photo supprimée");
+      toast.info(tr("actionPhotos.deleted"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec");
+      toast.error(e instanceof Error ? e.message : tr("actionPhotos.failed"));
     }
   };
 
@@ -130,7 +132,7 @@ export function ActionPhotos({ actionId }: Props) {
     <View style={styles.wrap}>
       <View style={styles.header}>
         <Text style={styles.title}>
-          Photos {photos.length > 0 ? `(${photos.length})` : ""}
+          {tr("actionPhotos.title")} {photos.length > 0 ? `(${photos.length})` : ""}
         </Text>
         <Pressable
           onPress={pickAndUpload}
@@ -140,7 +142,7 @@ export function ActionPhotos({ actionId }: Props) {
           {uploading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.addBtnTxt}>+ Ajouter</Text>
+            <Text style={styles.addBtnTxt}>{tr("actionPhotos.add")}</Text>
           )}
         </Pressable>
       </View>
@@ -149,7 +151,7 @@ export function ActionPhotos({ actionId }: Props) {
         <ActivityIndicator color={theme.colors.primary} style={{ marginVertical: 8 }} />
       ) : photos.length === 0 ? (
         <Text style={styles.empty}>
-          Aucune photo. Optionnel — ajoutez une preuve visuelle si utile.
+          {tr("actionPhotos.empty")}
         </Text>
       ) : (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gallery}>
@@ -188,7 +190,7 @@ export function ActionPhotos({ actionId }: Props) {
             ) : null}
             <View style={{ height: 12 }} />
             <Button
-              label="Supprimer la photo"
+              label={tr("actionPhotos.deleteBtn")}
               variant="danger"
               onPress={() => {
                 const v = viewer;
@@ -197,7 +199,7 @@ export function ActionPhotos({ actionId }: Props) {
               }}
             />
             <View style={{ height: 8 }} />
-            <Button label="Fermer" variant="secondary" onPress={() => setViewer(null)} />
+            <Button label={tr("actionPhotos.close")} variant="secondary" onPress={() => setViewer(null)} />
           </View>
         </Pressable>
       </Modal>

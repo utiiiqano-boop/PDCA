@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface Props {
   visible: boolean;
@@ -15,6 +16,7 @@ export function CancelActionModal({ visible, actionLabel, onCancel, onConfirm }:
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t: tr } = useTranslation();
 
   React.useEffect(() => {
     if (visible) {
@@ -26,14 +28,14 @@ export function CancelActionModal({ visible, actionLabel, onCancel, onConfirm }:
   const submit = async () => {
     setError(null);
     if (!comment.trim()) {
-      setError("La raison d'annulation est requise.");
+      setError(tr("cancelAction.reasonRequired"));
       return;
     }
     try {
       setBusy(true);
       await onConfirm(comment.trim());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur inconnue");
+      setError(e instanceof Error ? e.message : tr("common.unknownError"));
     } finally {
       setBusy(false);
     }
@@ -44,30 +46,29 @@ export function CancelActionModal({ visible, actionLabel, onCancel, onConfirm }:
       <Pressable style={styles.backdrop} onPress={onCancel}>
         <Pressable style={styles.sheet} onPress={() => {}}>
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text style={styles.title}>Annuler cette action</Text>
+            <Text style={styles.title}>{tr("cancelAction.title")}</Text>
             <Text style={styles.subtitle} numberOfLines={2}>
               {actionLabel}
             </Text>
 
             <Text style={styles.hint}>
-              L'action sera déplacée vers "Actions annulées". Elle restera consultable dans
-              l'historique.
+              {tr("cancelAction.hint")}
             </Text>
 
             <Input
-              label="Raison de l'annulation (requise)"
+              label={tr("cancelAction.reasonLabel")}
               value={comment}
               onChangeText={setComment}
               multiline
-              placeholder="Ex : Doublon, plus d'actualité, action abandonnée"
+              placeholder={tr("cancelAction.reasonPh")}
               required
             />
 
             {error ? <Text style={styles.err}>{error}</Text> : null}
 
-            <Button label="Confirmer l'annulation" variant="danger" onPress={submit} loading={busy} />
+            <Button label={tr("cancelAction.confirm")} variant="danger" onPress={submit} loading={busy} />
             <View style={{ height: 8 }} />
-            <Button label="Retour" variant="secondary" onPress={onCancel} />
+            <Button label={tr("cancelAction.back")} variant="secondary" onPress={onCancel} />
           </ScrollView>
         </Pressable>
       </Pressable>
