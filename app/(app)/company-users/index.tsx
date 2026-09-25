@@ -13,10 +13,10 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
+import { CreateUserModal } from "@/components/CreateUserModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useUI } from "@/ui/UIProvider";
-import { CreateUserModal } from "@/components/CreateUserModal";
 import {
   listCompanyUsers,
   setUserAdmin,
@@ -65,6 +65,7 @@ export default function CompanyUsersScreen() {
   if (error) return <ErrorState message={error} />;
 
   const adminCount = users.filter((u) => u.is_admin).length;
+  const activeCount = users.filter((u) => u.active).length;
 
   const handleToggleAdmin = async (user: ProfileRow) => {
     if (user.id === myId) {
@@ -148,29 +149,62 @@ export default function CompanyUsersScreen() {
     }
   };
 
+  const ListHeader = (
+    <View>
+      {/* Stats row */}
+      <View style={styles.statsRow}>
+        <View style={styles.statPill}>
+          <View style={[styles.statDot, { backgroundColor: theme.colors.primary }]} />
+          <Text style={styles.statTxt}>
+            {users.length} membre{users.length > 1 ? "s" : ""}
+          </Text>
+        </View>
+        <View style={styles.statPill}>
+          <View style={[styles.statDot, { backgroundColor: theme.colors.success }]} />
+          <Text style={styles.statTxt}>{activeCount} actif(s)</Text>
+        </View>
+        <View style={styles.statPill}>
+          <View style={[styles.statDot, { backgroundColor: theme.colors.warning }]} />
+          <Text style={styles.statTxt}>
+            {adminCount} admin{adminCount > 1 ? "s" : ""}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Utilisateurs</Text>
         <Text style={styles.sub}>
-          {users.length} membre(s) • {adminCount} admin(s)
+          Gérez les membres et leurs accès à l'application
         </Text>
       </View>
 
-      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+      {/* Add user button */}
+      <View style={styles.addWrap}>
         <Button
           label="+ Nouveau compte"
           onPress={() => setShowCreate(true)}
         />
       </View>
 
+      {/* List */}
       {users.length === 0 ? (
-        <EmptyState title="Aucun utilisateur" />
+        <EmptyState
+          title="Aucun utilisateur"
+          subtitle="Créez le premier compte ci-dessus."
+          icon="👥"
+        />
       ) : (
         <FlatList<ProfileRow>
-          contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
           data={users}
           keyExtractor={(it: ProfileRow) => it.id}
+          ListHeaderComponent={ListHeader}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -186,26 +220,21 @@ export default function CompanyUsersScreen() {
             const busy = busyId === item.id;
             return (
               <Card style={!item.active ? styles.cardInactive : undefined}>
+                {/* Header: avatar + nom + badges */}
                 <View style={styles.userHead}>
                   <View style={[styles.avatar, item.is_admin && styles.avatarAdmin]}>
                     <Text style={styles.avatarTxt}>
                       {(item.full_name || item.email).charAt(0).toUpperCase()}
                     </Text>
                   </View>
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={styles.nameRow}>
                       <Text style={styles.name} numberOfLines={1}>
                         {item.full_name || "Sans nom"}
                       </Text>
-                      {isMe ? <Text style={styles.badge}>Vous</Text> : null}
-                      {item.is_admin ? (
-                        <Text style={[styles.badge, styles.badgeAdmin]}>Admin</Text>
-                      ) : null}
-                      {!item.active ? (
-                        <Text style={[styles.badge, styles.badgeInactive]}>
-                          Désactivé
-                        </Text>
-                      ) : null}
+                      {isMe ? <Badge label="Vous" tone="primary" /> : null}
+                      {item.is_admin ? <Badge label="Admin" tone="warning" /> : null}
+                      {!item.active ? <Badge label="Désactivé" tone="danger" /> : null}
                     </View>
                     <Text style={styles.email} numberOfLines={1}>
                       {item.email}
@@ -219,24 +248,30 @@ export default function CompanyUsersScreen() {
                   {busy ? <ActivityIndicator color={theme.colors.primary} /> : null}
                 </View>
 
-                <View style={styles.actions}>
-                  <Button
-                    label={item.is_admin ? "Retirer admin" : "Promouvoir admin"}
-                    variant="secondary"
-                    onPress={() => handleToggleAdmin(item)}
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    label={item.active ? "Désactiver" : "Réactiver"}
-                    variant={item.active ? "danger" : "secondary"}
-                    onPress={() => handleToggleActive(item)}
-                    style={{ flex: 1 }}
-                  />
+                {/* Actions */}
+                <View style={styles.actionsGrid}>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label={item.is_admin ? "Retirer admin" : "Promouvoir"}
+                      variant="secondary"
+                      size="sm"
+                      onPress={() => handleToggleAdmin(item)}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label={item.active ? "Désactiver" : "Réactiver"}
+                      variant={item.active ? "danger" : "success"}
+                      size="sm"
+                      onPress={() => handleToggleActive(item)}
+                    />
+                  </View>
                 </View>
-                <View style={{ height: 8 }} />
+                <View style={{ height: theme.spacing(2) }} />
                 <Button
                   label="Réinitialiser mot de passe"
-                  variant="secondary"
+                  variant="ghost"
+                  size="sm"
                   onPress={() => handleResetPassword(item)}
                 />
               </Card>
@@ -244,7 +279,9 @@ export default function CompanyUsersScreen() {
           }}
         />
       )}
-          <CreateUserModal
+
+      {/* Create user modal */}
+      <CreateUserModal
         visible={showCreate}
         onClose={() => setShowCreate(false)}
         onCreated={load}
@@ -253,17 +290,91 @@ export default function CompanyUsersScreen() {
   );
 }
 
+function Badge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "primary" | "warning" | "danger";
+}) {
+  const map = {
+    primary: { fg: theme.colors.primary, bg: theme.colors.primarySoft },
+    warning: { fg: "#B45309", bg: theme.colors.warningSoft },
+    danger: { fg: theme.colors.danger, bg: theme.colors.dangerSoft },
+  };
+  const c = map[tone];
+  return (
+    <View style={[styles.badge, { backgroundColor: c.bg }]}>
+      <Text style={[styles.badgeTxt, { color: c.fg }]}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bg },
-  header: { padding: 16, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "800", color: theme.colors.text },
-  sub: { color: theme.colors.textMuted, marginTop: 4 },
-  cardInactive: { opacity: 0.7, borderColor: theme.colors.danger },
+
+  // ── Header ────────────────────────────────────
+  header: {
+    paddingHorizontal: theme.spacing(4),
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(3),
+  },
+  title: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.text,
+  },
+  sub: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+    lineHeight: 20,
+  },
+  addWrap: {
+    paddingHorizontal: theme.spacing(4),
+    marginBottom: theme.spacing(3),
+  },
+
+  // ── Stats row ─────────────────────────────────
+  statsRow: {
+    flexDirection: "row",
+    paddingHorizontal: theme.spacing(4),
+    gap: theme.spacing(3),
+    marginBottom: theme.spacing(4),
+    flexWrap: "wrap",
+  },
+  statPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statTxt: {
+    fontSize: theme.font.size.sm,
+    color: theme.colors.textMuted,
+    fontWeight: theme.font.weight.medium,
+  },
+
+  // ── List ──────────────────────────────────────
+  listContent: {
+    paddingHorizontal: theme.spacing(4),
+    paddingBottom: 60,
+  },
+
+  // ── Card user ─────────────────────────────────
+  cardInactive: {
+    opacity: 0.65,
+    borderColor: theme.colors.danger,
+  },
   userHead: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
+    gap: theme.spacing(3),
+    marginBottom: theme.spacing(3),
   },
   avatar: {
     width: 44,
@@ -274,26 +385,48 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarAdmin: { backgroundColor: theme.colors.primary },
-  avatarTxt: { color: "#fff", fontWeight: "800", fontSize: 18 },
+  avatarTxt: {
+    color: "#fff",
+    fontWeight: theme.font.weight.black,
+    fontSize: theme.font.size.lg,
+  },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     flexWrap: "wrap",
   },
-  name: { fontSize: 15, fontWeight: "800", color: theme.colors.text },
+  name: {
+    fontSize: theme.font.size.md,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.text,
+  },
   badge: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: theme.colors.primary,
-    backgroundColor: theme.colors.primary + "22",
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: theme.radius.pill,
   },
-  badgeAdmin: { color: "#fff", backgroundColor: theme.colors.primary },
-  badgeInactive: { color: "#fff", backgroundColor: theme.colors.danger },
-  email: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
-  role: { fontSize: 11, color: theme.colors.textMuted, marginTop: 1, fontStyle: "italic" },
-  actions: { flexDirection: "row", gap: 8 },
+  badgeTxt: {
+    fontSize: 9,
+    fontWeight: theme.font.weight.bold,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  email: {
+    fontSize: theme.font.size.sm,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+  },
+  role: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+    fontStyle: "italic",
+  },
+
+  // ── Actions ───────────────────────────────────
+  actionsGrid: {
+    flexDirection: "row",
+    gap: theme.spacing(2),
+  },
 });
