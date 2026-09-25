@@ -16,6 +16,7 @@ import { ExportButton } from "@/components/ExportButton";
 import { FilterBar, FilterState, defaultFilters } from "@/components/FilterBar";
 import { listCancelledActions, CancelledAction } from "@/services/pdcaService";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -37,13 +38,14 @@ export default function ActionsAnnuleesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const { t: tr } = useTranslation();
 
   const load = useCallback(async () => {
     try {
       setError(null);
       setItems(await listCancelledActions());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   }, []);
 
@@ -97,8 +99,7 @@ export default function ActionsAnnuleesScreen() {
             style={[styles.statDot, { backgroundColor: theme.colors.danger }]}
           />
           <Text style={styles.statTxt}>
-            {items.length} action{items.length > 1 ? "s" : ""} annulée
-            {items.length > 1 ? "s" : ""}
+            {items.length} {items.length > 1 ? tr("cancelledActions.countMany") : tr("cancelledActions.countOne")}
           </Text>
         </View>
         {byPilot.length > 0 ? (
@@ -107,7 +108,7 @@ export default function ActionsAnnuleesScreen() {
               style={[styles.statDot, { backgroundColor: theme.colors.textMuted }]}
             />
             <Text style={styles.statTxt}>
-              Top : {byPilot[0]?.label} ({byPilot[0]?.value})
+              {tr("cancelledActions.top")} : {byPilot[0]?.label} ({byPilot[0]?.value})
             </Text>
           </View>
         ) : null}
@@ -119,25 +120,25 @@ export default function ActionsAnnuleesScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Actions annulées</Text>
+        <Text style={styles.title}>{tr("cancelledActions.title")}</Text>
         <Text style={styles.sub}>
-          Historique des actions retirées du cycle PDCA
+          {tr("cancelledActions.subtitle")}
         </Text>
       </View>
 
       {/* Export */}
       <View style={styles.exportWrap}>
         <ExportButton
-          label="📊 Exporter la vue (7 colonnes)"
+          label={tr("cancelledActions.exportBtn")}
           filename="actions-annulees"
           headers={[
-            "PDCA",
-            "Sujet",
-            "Action",
-            "Pilote",
-            "Ouverture",
-            "Échéance",
-            "Statut",
+            tr("pdcaList.title"),
+            tr("department.hSubject"),
+            tr("department.hAction"),
+            tr("department.hPilot"),
+            tr("department.hOpenDate"),
+            tr("department.hDueDate"),
+            tr("status.OPEN").replace("Ouvert","Statut"),
           ]}
           rows={() =>
             filtered.map((a) => [
@@ -159,14 +160,14 @@ export default function ActionsAnnuleesScreen() {
         onChange={setFilters}
         showPriority={false}
         showStatus={false}
-        placeholder="Rechercher une action annulée…"
+        placeholder={tr("cancelledActions.searchPh")}
       />
 
       {/* List */}
       {filtered.length === 0 ? (
         <EmptyState
-          title="Aucune action annulée"
-          subtitle="Les actions annulées apparaîtront ici."
+          title={tr("cancelledActions.empty")}
+          subtitle={tr("cancelledActions.emptySub")}
           icon="🚫"
         />
       ) : (
@@ -199,27 +200,27 @@ export default function ActionsAnnuleesScreen() {
               </Text>
 
               <View style={styles.actionBox}>
-                <Text style={styles.actionLbl}>Action</Text>
+                <Text style={styles.actionLbl}>{tr("cancelledActions.actionLbl")}</Text>
                 <Text style={styles.actionTxt}>{item.action}</Text>
               </View>
 
               <View style={styles.metaGrid}>
-                <MetaItem icon="👤" label="Pilote" value={item.pilot_name} />
+                <MetaItem icon="👤" label={tr("department.hPilot")} value={item.pilot_name} />
                 <MetaItem
                   icon="📅"
-                  label="Ouverture"
+                  label={tr("department.hOpenDate")}
                   value={fmtDate(item.opening_date)}
                 />
                 <MetaItem
                   icon="⏰"
-                  label="Échéance"
+                  label={tr("department.hDueDate")}
                   value={fmtDate(item.due_date)}
                 />
               </View>
 
               <View style={styles.ctaWrap}>
                 <Button
-                  label="Voir le PDCA"
+                  label={tr("cancelledActions.seePdca")}
                   variant="secondary"
                   size="sm"
                   onPress={() => router.push(`/(app)/pdca/${item.pdca_id}`)}

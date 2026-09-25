@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface Props {
   value: number; // 0-100
@@ -17,6 +18,7 @@ export function ProgressBar({
   showLabel = true,
   label,
 }: Props) {
+  const { t: tr } = useTranslation();
   const clamped = Math.max(0, Math.min(100, value));
   const fillColor = color ?? theme.colors.primary;
 
@@ -24,7 +26,7 @@ export function ProgressBar({
     <View style={styles.wrap}>
       {showLabel ? (
         <View style={styles.labelRow}>
-          <Text style={styles.label}>{label ?? "Réalisation"}</Text>
+          <Text style={styles.label}>{label ?? tr("common.realization")}</Text>
           <Text style={[styles.pct, { color: fillColor }]}>{clamped}%</Text>
         </View>
       ) : null}

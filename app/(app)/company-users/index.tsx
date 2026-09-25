@@ -17,6 +17,7 @@ import { CreateUserModal } from "@/components/CreateUserModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useUI } from "@/ui/UIProvider";
+import { useTranslation } from "@/i18n/I18nProvider";
 import {
   listCompanyUsers,
   setUserAdmin,
@@ -30,6 +31,7 @@ export default function CompanyUsersScreen() {
   const { profile } = useAuth();
   const isAdmin = useIsAdmin();
   const { toast, confirm, alert } = useUI();
+  const { t: tr } = useTranslation();
 
   const companyId =
     (profile as { company_id?: string } | null)?.company_id ?? null;
@@ -60,7 +62,7 @@ export default function CompanyUsersScreen() {
   );
 
   if (!isAdmin) return <Redirect href="/(app)/dashboard" />;
-  if (!companyId) return <ErrorState message="Aucune entreprise associée." />;
+  if (!companyId) return <ErrorState message={tr("companyUsers.noCompany")} />;
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
 
@@ -70,15 +72,15 @@ export default function CompanyUsersScreen() {
   const handleToggleAdmin = async (user: ProfileRow) => {
     if (user.id === myId) {
       alert({
-        title: "Action impossible",
-        message: "Vous ne pouvez pas modifier votre propre statut admin.",
+        title: tr("companyUsers.actionImpossible"),
+        message: tr("companyUsers.cantChangeSelf"),
       });
       return;
     }
     if (user.is_admin && adminCount <= 1) {
       alert({
-        title: "Action impossible",
-        message: "Vous ne pouvez pas retirer le dernier administrateur.",
+        title: tr("companyUsers.actionImpossible"),
+        message: tr("companyUsers.cantRemoveLastAdmin"),
       });
       return;
     }
@@ -86,14 +88,14 @@ export default function CompanyUsersScreen() {
     const ok = await confirm({
       title: "Confirmer",
       message: `Voulez-vous ${verb} ${user.full_name} ?`,
-      confirmLabel: user.is_admin ? "Retirer admin" : "Promouvoir admin",
+      confirmLabel: user.is_admin ? tr("companyUsers.removeAdmin") : tr("companyUsers.promoteAdmin"),
       destructive: user.is_admin,
     });
     if (!ok) return;
     try {
       setBusyId(user.id);
       await setUserAdmin(user.id, !user.is_admin);
-      toast.success(user.is_admin ? "Admin retiré" : "Promu admin");
+      toast.success(user.is_admin ? tr("companyUsers.adminRemoved") : tr("companyUsers.adminPromoted"));
       await load();
     } catch (e) {
       alert({ title: "Erreur", message: e instanceof Error ? e.message : "Erreur" });
@@ -105,8 +107,8 @@ export default function CompanyUsersScreen() {
   const handleToggleActive = async (user: ProfileRow) => {
     if (user.id === myId) {
       alert({
-        title: "Action impossible",
-        message: "Vous ne pouvez pas désactiver votre propre compte.",
+        title: tr("companyUsers.actionImpossible"),
+        message: tr("companyUsers.cantDisableSelf"),
       });
       return;
     }
@@ -122,7 +124,7 @@ export default function CompanyUsersScreen() {
     try {
       setBusyId(user.id);
       await setUserActive(user.id, !user.active);
-      toast.success(user.active ? "Compte désactivé" : "Compte réactivé");
+      toast.success(user.active ? tr("companyUsers.accountDisabled") : tr("companyUsers.accountEnabled"));
       await load();
     } catch (e) {
       alert({ title: "Erreur", message: e instanceof Error ? e.message : "Erreur" });
@@ -135,13 +137,13 @@ export default function CompanyUsersScreen() {
     const ok = await confirm({
       title: "Réinitialiser le mot de passe ?",
       message: `Un email de réinitialisation sera envoyé à ${user.email}.`,
-      confirmLabel: "Envoyer l'email",
+      confirmLabel: tr("companyUsers.sendEmail"),
     });
     if (!ok) return;
     try {
       setBusyId(user.id);
       await sendPasswordReset(user.email);
-      toast.success("Email de réinitialisation envoyé");
+      toast.success(tr("companyUsers.resetEmailSent"));
     } catch (e) {
       alert({ title: "Erreur", message: e instanceof Error ? e.message : "Erreur" });
     } finally {
@@ -177,7 +179,7 @@ export default function CompanyUsersScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Utilisateurs</Text>
+        <Text style={styles.title}>{tr("companyUsers.title")}</Text>
         <Text style={styles.sub}>
           Gérez les membres et leurs accès à l'application
         </Text>
@@ -194,8 +196,8 @@ export default function CompanyUsersScreen() {
       {/* List */}
       {users.length === 0 ? (
         <EmptyState
-          title="Aucun utilisateur"
-          subtitle="Créez le premier compte ci-dessus."
+          title={tr("companyUsers.noUser")}
+          subtitle={tr("companyUsers.noUserSub")}
           icon="👥"
         />
       ) : (
@@ -230,11 +232,11 @@ export default function CompanyUsersScreen() {
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <View style={styles.nameRow}>
                       <Text style={styles.name} numberOfLines={1}>
-                        {item.full_name || "Sans nom"}
+                        {item.full_name || tr("companyUsers.noName")}
                       </Text>
-                      {isMe ? <Badge label="Vous" tone="primary" /> : null}
-                      {item.is_admin ? <Badge label="Admin" tone="warning" /> : null}
-                      {!item.active ? <Badge label="Désactivé" tone="danger" /> : null}
+                      {isMe ? <Badge label={tr("companyUsers.badgeYou")} tone="primary" /> : null}
+                      {item.is_admin ? <Badge label={tr("companyUsers.badgeAdmin")} tone="warning" /> : null}
+                      {!item.active ? <Badge label={tr("companyUsers.badgeDisabled")} tone="danger" /> : null}
                     </View>
                     <Text style={styles.email} numberOfLines={1}>
                       {item.email}
@@ -252,7 +254,7 @@ export default function CompanyUsersScreen() {
                 <View style={styles.actionsGrid}>
                   <View style={{ flex: 1 }}>
                     <Button
-                      label={item.is_admin ? "Retirer admin" : "Promouvoir"}
+                      label={item.is_admin ? tr("companyUsers.removeAdmin") : tr("companyUsers.promote")}
                       variant="secondary"
                       size="sm"
                       onPress={() => handleToggleAdmin(item)}
@@ -269,7 +271,7 @@ export default function CompanyUsersScreen() {
                 </View>
                 <View style={{ height: theme.spacing(2) }} />
                 <Button
-                  label="Réinitialiser mot de passe"
+                  label={tr("companyUsers.resetPassword")}
                   variant="ghost"
                   size="sm"
                   onPress={() => handleResetPassword(item)}

@@ -1,12 +1,14 @@
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
-export function LoadingState({ label = "Chargement…" }: { label?: string }) {
+export function LoadingState({ label }: { label?: string }) {
+  const { t: tr } = useTranslation();
   return (
     <View style={styles.center}>
       <ActivityIndicator color={theme.colors.primary} size="large" />
-      <Text style={styles.loadingTxt}>{label}</Text>
+      <Text style={styles.loadingTxt}>{label ?? tr("common.loading")}</Text>
     </View>
   );
 }
@@ -32,12 +34,13 @@ export function EmptyState({
 }
 
 export function ErrorState({ message }: { message: string }) {
+  const { t: tr } = useTranslation();
   return (
     <View style={styles.center}>
       <View style={[styles.emptyIcon, { backgroundColor: theme.colors.dangerSoft }]}>
         <Text style={styles.emptyIconTxt}>⚠️</Text>
       </View>
-      <Text style={[styles.title, { color: theme.colors.danger }]}>Erreur</Text>
+      <Text style={[styles.title, { color: theme.colors.danger }]}>{tr("common.error")}</Text>
       <Text style={styles.txt}>{message}</Text>
     </View>
   );

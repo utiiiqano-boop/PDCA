@@ -14,6 +14,7 @@ import { Input } from "@/components/Input";
 import { Select } from "@/components/Select";
 import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { useUI } from "@/ui/UIProvider";
+import { useTranslation } from "@/i18n/I18nProvider";
 import { createCompanyUser, CreateCompanyUserResult } from "@/services/companyUsersService";
 import { theme } from "@/theme";
 
@@ -26,6 +27,7 @@ interface Props {
 export function CreateUserModal({ visible, onClose, onCreated }: Props) {
   const { pilots } = useCompanyOptions();
   const { toast, alert } = useUI();
+  const { t: tr } = useTranslation();
 
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
@@ -177,12 +179,8 @@ export function CreateUserModal({ visible, onClose, onCreated }: Props) {
                     {isAdmin ? <Text style={styles.checkmark}>✓</Text> : null}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.checkboxLabel}>
-                      Administrateur
-                    </Text>
-                    <Text style={styles.checkboxHint}>
-                      Peut configurer l'entreprise et gérer les utilisateurs
-                    </Text>
+                    <Text style={styles.checkboxLabel}>{tr("role.admin")}</Text>
+                    <Text style={styles.checkboxHint}>{tr("role.adminHint")}</Text>
                   </View>
                 </Pressable>
 

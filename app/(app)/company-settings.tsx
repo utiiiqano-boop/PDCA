@@ -14,6 +14,7 @@ import { Card } from "@/components/Card";
 import { LoadingState, ErrorState } from "@/components/States";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/ui/UIProvider";
+import { useTranslation } from "@/i18n/I18nProvider";
 import {
   getCompany,
   updateCompany,
@@ -26,6 +27,7 @@ export default function CompanySettings() {
   // ── 1. HOOKS FIRST ────────────────────────────────────
   const { profile } = useAuth();
   const { toast, alert } = useUI();
+  const { t: tr } = useTranslation();
 
   const [company, setCompany] = useState<CompanyRow | null>(null);
   const [name, setName] = useState("");
@@ -39,7 +41,7 @@ export default function CompanySettings() {
 
   useEffect(() => {
     if (!companyId) {
-      setError("Aucune entreprise associée à votre compte.");
+      setError(tr("companySettings.noCompany"));
       setLoading(false);
       return;
     }
@@ -73,7 +75,7 @@ export default function CompanySettings() {
       const ImagePicker = await import("expo-image-picker");
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        toast.error("Permission refusée.");
+        toast.error(tr("companySettings.permissionDenied"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -103,12 +105,12 @@ export default function CompanySettings() {
       if (logoUri) {
         await uploadCompanyLogo(companyId, logoUri);
       }
-      toast.success("Entreprise mise à jour");
+      toast.success(tr("companySettings.updated"));
       const fresh = await getCompany(companyId);
       setCompany(fresh);
       setLogoUri(null);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur inconnue";
+      const msg = e instanceof Error ? e.message : tr("companySettings.unknownError");
       alert({ title: "Erreur", message: msg });
     } finally {
       setSaving(false);
@@ -128,7 +130,7 @@ export default function CompanySettings() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Mon entreprise</Text>
+        <Text style={styles.title}>{tr("companySettings.title")}</Text>
         <Text style={styles.sub}>
           Gérez le nom et le logo affichés dans l'application
         </Text>
@@ -136,7 +138,7 @@ export default function CompanySettings() {
 
       {/* Logo card */}
       <Card>
-        <Text style={styles.sectionLabel}>Logo</Text>
+        <Text style={styles.sectionLabel}>{tr("companySettings.logo")}</Text>
 
         <View style={styles.logoSection}>
           <View style={styles.logoBox}>
@@ -152,7 +154,7 @@ export default function CompanySettings() {
           </View>
           <View style={{ flex: 1 }}>
             <Button
-              label="Changer le logo"
+              label={tr("companySettings.changeLogo")}
               variant="secondary"
               size="sm"
               onPress={pickLogo}
@@ -162,7 +164,7 @@ export default function CompanySettings() {
                 onPress={() => setLogoUri(null)}
                 style={styles.removeLogoBtn}
               >
-                <Text style={styles.removeLogoTxt}>Retirer le nouveau logo</Text>
+                <Text style={styles.removeLogoTxt}>{tr("companySettings.removeLogo")}</Text>
               </Pressable>
             ) : null}
             <Text style={styles.logoHint}>
@@ -174,21 +176,21 @@ export default function CompanySettings() {
 
       {/* Name card */}
       <Card>
-        <Text style={styles.sectionLabel}>Informations</Text>
+        <Text style={styles.sectionLabel}>{tr("companySettings.info")}</Text>
         <Input
-          label="Nom de l'entreprise"
+          label={tr("companySettings.name")}
           value={name}
           onChangeText={setName}
-          placeholder="Ex : Métallurgie Dupont SAS"
+          placeholder={tr("companySettings.namePh")}
           required
-          hint="Ce nom apparaît dans le drawer et le dashboard"
+          hint={tr("companySettings.nameHint")}
         />
       </Card>
 
       {/* Save button */}
       <View style={styles.saveWrap}>
         <Button
-          label="Enregistrer les modifications"
+          label={tr("companySettings.save")}
           onPress={onSave}
           loading={saving}
         />

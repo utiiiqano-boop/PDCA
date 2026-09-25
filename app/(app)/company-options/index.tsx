@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { useTranslation } from "@/i18n/I18nProvider";
 import {
   ActivityIndicator,
   Pressable,
@@ -24,6 +25,7 @@ const TABS: { key: OptionKind; icon: string; shortLabel: string }[] = [
 ];
 
 export default function CompanyOptionsScreen() {
+  const { t: tr } = useTranslation();
   const { profile } = useAuth();
   const isAdmin = useIsAdmin();
   const companyId =
@@ -41,12 +43,12 @@ export default function CompanyOptionsScreen() {
   );
 
   if (!isAdmin) return <Redirect href="/(app)/dashboard" />;
-  if (!companyId) return <ErrorState message="Aucune entreprise associée." />;
+  if (!companyId) return <ErrorState message={tr("companyOptions.noCompany")} />;
   if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
-        <Text style={styles.loadingTxt}>Chargement…</Text>
+        <Text style={styles.loadingTxt}>{tr("companyOptions.loading")}</Text>
       </View>
     );
   }
@@ -72,7 +74,7 @@ export default function CompanyOptionsScreen() {
     <View style={styles.container}>
       {/* ── Header ──────────────────────────────────── */}
       <View style={styles.header}>
-        <Text style={styles.title}>Configuration</Text>
+        <Text style={styles.title}>{tr("companyOptions.title")}</Text>
         <Text style={styles.sub}>
           Personnalisez les listes de votre entreprise
         </Text>

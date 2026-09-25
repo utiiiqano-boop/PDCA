@@ -156,7 +156,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             {fullName || "Utilisateur"}
           </Text>
           <Text style={styles.footerRole} numberOfLines={1}>
-            {isAdmin ? "Administrateur" : role || "Membre"}
+            {isAdmin ? t("role.admin") : role || t("role.member")}
           </Text>
         </View>
       </View>

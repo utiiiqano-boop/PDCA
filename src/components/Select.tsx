@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface Props {
   label: string;
@@ -12,7 +13,9 @@ interface Props {
   required?: boolean;
 }
 
-export function Select({ label, value, options, onChange, placeholder = "Sélectionner…", error, required }: Props) {
+export function Select({ label, value, options, onChange, placeholder, error, required }: Props) {
+  const { t: tr } = useTranslation();
+  const ph = placeholder ?? tr("select.placeholder");
   const [open, setOpen] = useState(false);
   return (
     <View style={styles.wrap}>
@@ -23,10 +26,10 @@ export function Select({ label, value, options, onChange, placeholder = "Sélect
         onPress={() => setOpen(true)}
         style={[styles.field, error ? styles.fieldError : undefined]}
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value ?? placeholder}`}
+        accessibilityLabel={`${label}: ${value ?? ph}`}
       >
         <Text style={{ color: value ? theme.colors.text : theme.colors.textMuted, fontSize: 16 }}>
-          {value ?? placeholder}
+          {value ?? ph}
         </Text>
       </Pressable>
       {error ? <Text style={styles.err}>{error}</Text> : null}

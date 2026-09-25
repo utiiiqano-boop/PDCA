@@ -25,6 +25,7 @@ import {
 } from "@/services/signatureService";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/ui/UIProvider";
+import { useTranslation } from "@/i18n/I18nProvider";
 import type {
   PDCAPhase,
   PDCAActionRow,

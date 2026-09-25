@@ -2,7 +2,8 @@ import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { theme } from "@/theme";
 import type { PDCAPhase } from "@/types/database";
-import { PHASE_LABELS, PHASE_TO_PROGRESS } from "@/constants/options";
+import { PHASE_TO_PROGRESS } from "@/constants/options";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 const PHASES: PDCAPhase[] = ["P", "D", "C", "A"];
 
@@ -11,7 +12,10 @@ interface Props {
   onSelect?: (p: PDCAPhase) => void;
 }
 
+const PHASE_KEY: Record<PDCAPhase, string> = { P: "PLAN", D: "DO", C: "CHECK", A: "ACT" };
+
 export function PDCAProgressBar({ phase, onSelect }: Props) {
+  const { t: tr } = useTranslation();
   const activeIdx = PHASES.indexOf(phase);
   const progress = PHASE_TO_PROGRESS[phase];
 
@@ -27,7 +31,7 @@ export function PDCAProgressBar({ phase, onSelect }: Props) {
               onPress={() => onSelect?.(p)}
               style={styles.segmentTouch}
               accessibilityRole="button"
-              accessibilityLabel={`Phase ${p} (${PHASE_TO_PROGRESS[p]}%)`}
+              accessibilityLabel={`${tr("phase." + PHASE_KEY[p])} (${PHASE_TO_PROGRESS[p]}%)`}
             >
               <View style={[styles.dot, active && styles.dotActive]} />
               <Text style={[styles.phase, active && styles.phaseActive]}>{p}</Text>
@@ -42,7 +46,7 @@ export function PDCAProgressBar({ phase, onSelect }: Props) {
         ))}
       </View>
       <Text style={styles.current}>
-        Phase actuelle : <Text style={{ fontWeight: "700" }}>{phase}</Text> — {PHASE_LABELS[phase]} ({progress}%)
+        {tr("phase.current")} : <Text style={{ fontWeight: "700" }}>{phase}</Text> — {tr("phase." + PHASE_KEY[phase])} ({progress}%)
       </Text>
     </View>
   );

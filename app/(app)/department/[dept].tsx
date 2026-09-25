@@ -20,13 +20,7 @@ import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { useUI } from "@/ui/UIProvider";
 import { exportCsv } from "@/services/exportService";
 import { theme } from "@/theme";
-
-const PHASE_LABELS: Record<string, string> = {
-  P: "Plan",
-  D: "Do",
-  C: "Check",
-  A: "Act",
-};
+import { useTranslation } from "@/i18n/I18nProvider";
 
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -56,10 +50,13 @@ function fmtDateTime(iso: string | null | undefined): string {
   }
 }
 
+const PHASE_KEY: Record<string, string> = { P: "PLAN", D: "DO", C: "CHECK", A: "ACT" };
+
 export default function DepartmentScreen() {
   const params = useLocalSearchParams<{ dept: string }>();
   const deptLabel = params.dept ? decodeURIComponent(params.dept) : "";
   const { toast, alert } = useUI();
+  const { t: tr } = useTranslation();
 
   const { departments, loading: optsLoading } = useCompanyOptions();
   const department = useMemo(
@@ -80,7 +77,7 @@ export default function DepartmentScreen() {
       setError(null);
       setItems(await listPDCAByDepartmentId(department.id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   }, [department?.id]);
 
@@ -130,10 +127,10 @@ export default function DepartmentScreen() {
           pdca.defect_type ?? "",
           pdca.defect_type_other ?? "",
           pdca.priority === "HIGH"
-            ? "Élevée"
-            : pdca.priority === "MEDIUM"
-              ? "Moyenne"
-              : "Faible",
+            ? tr("priority.HIGH")
+              : pdca.priority === "MEDIUM"
+                ? tr("priority.MEDIUM")
+                : tr("priority.LOW"),
           pdca.department ?? "",
           pdca.status,
           fmtDateTime(pdca.created_at),
@@ -152,7 +149,7 @@ export default function DepartmentScreen() {
               fmtDate(a.opening_date),
               fmtDate(a.due_date),
               a.phase,
-              PHASE_LABELS[a.phase] ?? a.phase,
+              tr("phase." + (PHASE_KEY[a.phase] ?? "PLAN")),
               `${a.progress}%`,
               a.status,
               fmtDateTime(a.completed_at),
@@ -163,7 +160,7 @@ export default function DepartmentScreen() {
       }
 
       if (rows.length === 0) {
-        toast.info("Aucune donnée à exporter");
+        toast.info(tr("export.noData"));
         return;
       }
 
@@ -171,39 +168,39 @@ export default function DepartmentScreen() {
         filename: `department-${department.label}-complet`,
         headers: [
           // --- PDCA ---
-          "Référence",
-          "Sujet",
-          "Description",
-          "Ligne",
-          "Ligne (autre)",
-          "Type de défaut",
-          "Type défaut (autre)",
-          "Priorité",
-          "Département",
-          "Statut PDCA",
-          "PDCA créé le",
-          "PDCA modifié le",
-          "Nb actions",
+          tr("department.hRef"),
+          tr("department.hSubject"),
+          tr("department.hDescription"),
+          tr("department.hLine"),
+          tr("department.hLineOther"),
+          tr("department.hDefectType"),
+          tr("department.hDefectTypeOther"),
+          tr("department.hPriority"),
+          tr("department.hDepartment"),
+          tr("department.hStatusPdca"),
+          tr("department.hPdcaCreated"),
+          tr("department.hPdcaUpdated"),
+          tr("department.hActionsCount"),
           // --- Action ---
-          "Action",
-          "Pilote",
-          "Date ouverture",
-          "Date fin",
-          "Phase",
-          "Phase (libellé)",
-          "Progression",
-          "Statut action",
-          "Action terminée le",
-          "Commentaire",
+          tr("department.hAction"),
+          tr("department.hPilot"),
+          tr("department.hOpenDate"),
+          tr("department.hDueDate"),
+          tr("department.hPhase"),
+          tr("department.hPhaseLabel"),
+          tr("department.hProgress"),
+          tr("department.hStatusAction"),
+          tr("department.hCompletedAt"),
+          tr("department.hComment"),
         ],
         rows,
       });
 
-      toast.success(`Export complet : ${rows.length} ligne(s)`);
+      toast.success(`${tr("department.exportDone")} : ${rows.length}`);
     } catch (e) {
       alert({
-        title: "Erreur d'export",
-        message: e instanceof Error ? e.message : "Erreur",
+        title: tr("department.exportFailed"),
+        message: e instanceof Error ? e.message : tr("common.error"),
       });
     } finally {
       setExportingFull(false);
@@ -216,7 +213,7 @@ export default function DepartmentScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
         <Stack.Screen options={{ title: deptLabel }} />
-        <ErrorState message={`Département inconnu : ${deptLabel}`} />
+        <ErrorState message={`${tr("department.unknown")} : ${deptLabel}`} />
       </View>
     );
   }
@@ -230,10 +227,10 @@ export default function DepartmentScreen() {
 
       {/* ── KPI ───────────────────────────────────── */}
       <View style={styles.statsRow}>
-        <Stat n={stats.total} l="PDCA" />
-        <Stat n={stats.open} l="En cours" />
-        <Stat n={stats.completed} l="Terminées" />
-        <Stat n={stats.overdue} l="En retard" danger />
+        <Stat n={stats.total} l={tr("nav.pdca")} />
+        <Stat n={stats.open} l={tr("dashboard.inProgress")} />
+        <Stat n={stats.completed} l={tr("department.kpiCompleted")} />
+        <Stat n={stats.overdue} l={tr("dashboard.overdue")} danger />
       </View>
 
       {/* ── Filtres ───────────────────────────────── */}
@@ -242,16 +239,16 @@ export default function DepartmentScreen() {
       {/* ── Exports ───────────────────────────────── */}
       <View style={styles.exportWrap}>
         <ExportButton
-          label="📊 Exporter la vue (7 colonnes)"
+          label={tr("department.exportView")}
           filename={`department-${department.label}-vue`}
           headers={[
-            "Référence",
-            "Sujet",
-            "Ligne",
-            "Priorité",
-            "Statut",
-            "Créé le",
-            "Nb actions",
+            tr("department.hRef"),
+            tr("department.hSubject"),
+            tr("department.hLine"),
+            tr("department.hPriority"),
+            tr("status.OPEN").replace("Ouvert","Statut"),
+            tr("department.hPdcaCreated"),
+            tr("department.hActionsCount"),
           ]}
           rows={() =>
             filtered.map((p) => [
@@ -259,10 +256,10 @@ export default function DepartmentScreen() {
               p.subject,
               p.line,
               p.priority === "HIGH"
-                ? "Élevée"
+                ? tr("priority.HIGH")
                 : p.priority === "MEDIUM"
-                  ? "Moyenne"
-                  : "Faible",
+                  ? tr("priority.MEDIUM")
+                  : tr("priority.LOW"),
               p.status,
               fmtDate(p.created_at),
               p.pdca_actions.length,
@@ -271,22 +268,21 @@ export default function DepartmentScreen() {
         />
         <View style={{ height: theme.spacing(2) }} />
         <Button
-          label="📥 Exporter tout (23 colonnes)"
+          label={tr("department.exportFull")}
           variant="secondary"
           onPress={handleExportFull}
           loading={exportingFull}
         />
         <Text style={styles.exportHint}>
-          "Vue" = filtre actuel, format compact · "Tout" = tous les champs + une
-          ligne par action
+          {tr("department.exportHint")}
         </Text>
       </View>
 
       {/* ── Liste ─────────────────────────────────── */}
       {filtered.length === 0 ? (
         <EmptyState
-          title="Aucun PDCA"
-          subtitle={`Rien à afficher pour ${department.label}.`}
+          title={tr("department.noPdca")}
+          subtitle={`${tr("department.nothingToShow")} ${department.label}.`}
         />
       ) : (
         <FlatList<PDCAWithActions>
@@ -313,7 +309,7 @@ export default function DepartmentScreen() {
                   </View>
                   <Text style={styles.subject}>{item.subject}</Text>
                   <Text style={styles.meta}>
-                    {item.line} • {item.pdca_actions.length} action(s)
+                    {item.line} • {item.pdca_actions.length} {tr("department.lineCount")}
                   </Text>
                   <View style={{ marginTop: theme.spacing(2) }}>
                     <PriorityBadge priority={item.priority} />

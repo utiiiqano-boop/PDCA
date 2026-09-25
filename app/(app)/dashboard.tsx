@@ -173,7 +173,7 @@ export default function Dashboard() {
           <Text style={styles.companyName} numberOfLines={1}>
             {company?.name ?? "Chargement…"}
           </Text>
-          <Text style={styles.companySub}>Espace PDCA</Text>
+          <Text style={styles.companySub}>{tr("dashboard.companySub")}</Text>
         </View>
       </View>
 
@@ -227,25 +227,25 @@ export default function Dashboard() {
 
       {/* ── Taux de réalisation ────────────────────── */}
       <Card>
-        <Text style={styles.sectionLabel}>Taux de réalisation</Text>
+        <Text style={styles.sectionLabel}>{tr("dashboard.rateTitle")}</Text>
 
         <View style={styles.rateRow}>
           <View style={styles.rateBig}>
             <Text style={styles.rateValue}>{stats.rate}%</Text>
-            <Text style={styles.rateHint}>Actions terminées</Text>
+            <Text style={styles.rateHint}>{tr("dashboard.rateActionsDone")}</Text>
           </View>
           <View style={styles.rateBig}>
             <Text style={[styles.rateValue, { color: theme.colors.success }]}>
               {stats.pdcaRate}%
             </Text>
-            <Text style={styles.rateHint}>PDCA clôturés</Text>
+            <Text style={styles.rateHint}>{tr("dashboard.ratePdcaClosed")}</Text>
           </View>
         </View>
 
         <View style={{ marginTop: theme.spacing(3) }}>
           <ProgressBar
             value={stats.rate}
-            label="Actions"
+            label={tr("dashboard.kpiActions")}
             showLabel={false}
           />
         </View>
@@ -253,14 +253,14 @@ export default function Dashboard() {
           <ProgressBar
             value={stats.pdcaRate}
             color={theme.colors.success}
-            label="PDCA"
+            label={tr("dashboard.kpiPdca")}
             showLabel={false}
           />
         </View>
 
         <View style={styles.miniRow}>
           <MiniKpi n={stats.actionsCompleted} l="Terminées" color={theme.colors.success} />
-          <MiniKpi n={stats.actionsInProgress} l="En cours" color={theme.colors.warning} />
+          <MiniKpi n={stats.actionsInProgress} l={tr("dashboard.kpiInProgress")} color={theme.colors.warning} />
           <MiniKpi n={stats.actionsOpen} l="Ouvertes" color={theme.colors.info} />
           <MiniKpi n={stats.actionsCancelled} l="Annulées" color={theme.colors.textMuted} />
         </View>
@@ -274,7 +274,7 @@ export default function Dashboard() {
               <Text style={styles.alertIcon}>⚠️</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.alertTitle}>Actions en retard</Text>
+              <Text style={styles.alertTitle}>{tr("dashboard.alertLate")}</Text>
               <Text style={styles.alertCount}>
                 {stats.actionsOverdue} action
                 {stats.actionsOverdue > 1 ? "s" : ""} dépassée
@@ -303,7 +303,7 @@ export default function Dashboard() {
 
           <View style={{ height: theme.spacing(2) }} />
           <Button
-            label="Voir toutes les actions"
+            label={tr("dashboard.seeAllActions")}
             variant="ghost"
             size="sm"
             onPress={() => router.push("/(app)/actions-annulees")}
@@ -312,42 +312,42 @@ export default function Dashboard() {
       ) : null}
 
       {/* ── Actions rapides ────────────────────────── */}
-      <Text style={styles.sectionHeader}>Actions rapides</Text>
+      <Text style={styles.sectionHeader}>{tr("dashboard.quickActions")}</Text>
       <View style={styles.quickGrid}>
         <QuickAction
           icon="➕"
-          label="Nouveau PDCA"
+          label={tr("dashboard.newPdca")}
           onPress={() => router.push("/(app)/pdca/new")}
         />
         <QuickAction
           icon="📋"
-          label="Liste PDCA"
+          label={tr("dashboard.pdcaList")}
           onPress={() => router.push("/(app)/pdca")}
         />
         <QuickAction
           icon="👥"
-          label="Pilotes"
+          label={tr("dashboard.pilots")}
           onPress={() => router.push("/(app)/pilotes")}
         />
         <QuickAction
           icon="📈"
-          label="Graphiques"
+          label={tr("dashboard.charts")}
           onPress={() => router.push("/(app)/graphiques")}
         />
       </View>
 
       {/* ── PDCA récents ───────────────────────────── */}
       <View style={styles.recentHeader}>
-        <Text style={styles.sectionHeader}>PDCA récents</Text>
+        <Text style={styles.sectionHeader}>{tr("dashboard.recentPdca")}</Text>
         <Pressable onPress={() => router.push("/(app)/pdca")}>
-          <Text style={styles.seeAll}>Voir tout</Text>
+          <Text style={styles.seeAll}>{tr("dashboard.seeAll")}</Text>
         </Pressable>
       </View>
 
       {recentPdcas.length === 0 ? (
         <EmptyState
-          title="Aucun PDCA"
-          subtitle="Créez votre premier PDCA."
+          title={tr("dashboard.noPdca")}
+          subtitle={tr("dashboard.noPdcaSub")}
           icon="📋"
         />
       ) : (
@@ -383,7 +383,7 @@ export default function Dashboard() {
 
       {/* ── Logout ─────────────────────────────────── */}
       <View style={{ height: theme.spacing(6) }} />
-      <Button label="Se déconnecter" variant="secondary" onPress={signOut} />
+      <Button label={tr("dashboard.logout")} variant="secondary" onPress={signOut} />
       <View style={{ height: theme.spacing(6) }} />
     </ScrollView>
   );
