@@ -13,6 +13,7 @@ import { ExportButton } from "@/components/ExportButton";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listPilotSummaries, PilotSummary } from "@/services/pdcaService";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 function rateColor(rate: number): string {
   if (rate >= 80) return theme.colors.success;
@@ -33,13 +34,14 @@ export default function PilotesScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t: tr } = useTranslation();
 
   const load = useCallback(async () => {
     try {
       setError(null);
       setItems(await listPilotSummaries());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   }, []);
 
@@ -72,25 +74,25 @@ export default function PilotesScreen() {
       <View style={styles.statsRow}>
         <StatPill
           icon="👥"
-          label="Pilotes"
+          label={tr("pilotesScreen.statPilots")}
           value={items.length}
           color={theme.colors.primary}
         />
         <StatPill
           icon="📋"
-          label="Actions"
+          label={tr("pilotesScreen.statActions")}
           value={totalActions}
           color={theme.colors.info}
         />
         <StatPill
           icon="✓"
-          label="Terminées"
+          label={tr("pilotesScreen.statCompleted")}
           value={totalCompleted}
           color={theme.colors.success}
         />
         <StatPill
           icon="⚠"
-          label="En retard"
+          label={tr("pilotesScreen.statOverdue")}
           value={totalOverdue}
           color={theme.colors.danger}
         />
@@ -99,7 +101,7 @@ export default function PilotesScreen() {
       {/* Global rate */}
       <Card style={styles.globalCard}>
         <View style={styles.globalHeader}>
-          <Text style={styles.globalLabel}>Taux de réalisation global</Text>
+          <Text style={styles.globalLabel}>{tr("pilotesScreen.globalRate")}</Text>
           <Text style={[styles.globalPct, { color: rateColor(globalRate) }]}>
             {globalRate}%
           </Text>
@@ -118,27 +120,27 @@ export default function PilotesScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Pilotes</Text>
+        <Text style={styles.title}>{tr("pilotesScreen.title")}</Text>
         <Text style={styles.sub}>
-          Vue d'ensemble par responsable d'action
+          {tr("pilotesScreen.subtitle")}
         </Text>
       </View>
 
       {/* Export */}
       <View style={styles.exportWrap}>
         <ExportButton
-          label="📊 Exporter la vue (pilotes)"
+          label={tr("pilotesScreen.exportBtn")}
           filename="pilotes"
           headers={[
-            "Pilote",
-            "Nb PDCA",
-            "Actions totales",
-            "Terminées",
-            "En cours",
-            "Ouvertes",
-            "En retard",
-            "Annulées",
-            "Taux réalisation %",
+            tr("pilotesScreen.hPilot"),
+            tr("pilotesScreen.hPdcaCount"),
+            tr("pilotesScreen.hActionsTotal"),
+            tr("pilotesScreen.hCompleted"),
+            tr("pilotesScreen.hInProgress"),
+            tr("pilotesScreen.hOpen"),
+            tr("pilotesScreen.hOverdue"),
+            tr("pilotesScreen.hCancelled"),
+            tr("pilotesScreen.hRate"),
           ]}
           rows={() =>
             items.map((p) => [
@@ -159,8 +161,8 @@ export default function PilotesScreen() {
       {/* List */}
       {items.length === 0 ? (
         <EmptyState
-          title="Aucun pilote"
-          subtitle="Créez un PDCA avec une action pour faire apparaître les pilotes ici."
+          title={tr("pilotesScreen.empty")}
+          subtitle={tr("pilotesScreen.emptySub")}
           icon="👤"
         />
       ) : (
@@ -199,11 +201,11 @@ export default function PilotesScreen() {
                   </Text>
                   <View style={styles.metaRow}>
                     <Badge
-                      label={`${item.pdca_ids.length} PDCA`}
+                      label={`${item.pdca_ids.length} ${tr("pilotesScreen.pdcaCount")}`}
                       tone="primary"
                     />
                     <Badge
-                      label={`${item.total_actions} action${item.total_actions > 1 ? "s" : ""}`}
+                      label={`${item.total_actions} ${item.total_actions > 1 ? tr("pilotesScreen.actionCountMany") : tr("pilotesScreen.actionCount")}`}
                       tone="neutral"
                     />
                   </View>
@@ -213,7 +215,7 @@ export default function PilotesScreen() {
               {/* Progress */}
               <View style={styles.progressWrap}>
                 <View style={styles.progressHeader}>
-                  <Text style={styles.progressLabel}>Taux de réalisation</Text>
+                  <Text style={styles.progressLabel}>{tr("pilotesScreen.rateTitle")}</Text>
                   <Text
                     style={[
                       styles.progressPct,
@@ -235,22 +237,22 @@ export default function PilotesScreen() {
               <View style={styles.metrics}>
                 <Metric
                   n={item.completed_actions}
-                  l="Terminées"
+                  l={tr("pilotesScreen.metricCompleted")}
                   color={theme.colors.success}
                 />
                 <Metric
                   n={item.in_progress_actions}
-                  l="En cours"
+                  l={tr("pilotesScreen.metricInProgress")}
                   color={theme.colors.warning}
                 />
                 <Metric
                   n={item.open_actions}
-                  l="Ouvertes"
+                  l={tr("pilotesScreen.metricOpen")}
                   color={theme.colors.info}
                 />
                 <Metric
                   n={item.overdue_actions}
-                  l="Retard"
+                  l={tr("pilotesScreen.metricLate")}
                   color={theme.colors.danger}
                 />
               </View>

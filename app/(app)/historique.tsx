@@ -20,19 +20,22 @@ import {
 import { useUI } from "@/ui/UIProvider";
 import { exportCsv } from "@/services/exportService";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
-const EVENT_LABELS: Record<string, string> = {
-  PDCA_CREATED: "PDCA créé",
-  PDCA_CANCELLED: "PDCA annulé",
-  ACTION_CREATED: "Action créée",
-  ACTION_UPDATED: "Action modifiée",
-  ACTION_COMPLETED: "Action clôturée",
-  ACTION_CANCELLED: "Action annulée",
-  PHASE_CHANGED: "Phase modifiée",
-  PILOT_CHANGED: "Pilote modifié",
-  DUE_DATE_CHANGED: "Échéance modifiée",
-  PRIORITY_CHANGED: "Priorité modifiée",
+const EVENT_KEYS: Record<string, string> = {
+  PDCA_CREATED: "ePdcaCreated",
+  PDCA_CANCELLED: "ePdcaCancelled",
+  ACTION_CREATED: "eActionCreated",
+  ACTION_UPDATED: "eActionUpdated",
+  ACTION_COMPLETED: "eActionCompleted",
+  ACTION_CANCELLED: "eActionCancelled",
+  PHASE_CHANGED: "ePhaseChanged",
+  PILOT_CHANGED: "ePilotChanged",
+  DUE_DATE_CHANGED: "eDueDateChanged",
+  PRIORITY_CHANGED: "ePriorityChanged",
 };
+const eventLabel = (tr: (k: string) => string, code: string): string =>
+  EVENT_KEYS[code] ? tr("historiqueScreen." + EVENT_KEYS[code]) : code;
 
 const EVENT_COLORS: Record<string, { fg: string; bg: string }> = {
   PDCA_CREATED:     { fg: theme.colors.primary, bg: theme.colors.primarySoft },
@@ -45,14 +48,14 @@ const EVENT_COLORS: Record<string, { fg: string; bg: string }> = {
   DUE_DATE_CHANGED: { fg: "#B45309",            bg: theme.colors.warningSoft },
 };
 
-const FILTERS = [
-  { key: "ALL", label: "Tous" },
-  { key: "ACTION_CREATED", label: "Créations" },
-  { key: "ACTION_COMPLETED", label: "Clôtures" },
-  { key: "ACTION_CANCELLED", label: "Annulations" },
-  { key: "PHASE_CHANGED", label: "Phases" },
-  { key: "PILOT_CHANGED", label: "Pilotes" },
-  { key: "DUE_DATE_CHANGED", label: "Échéances" },
+const FILTER_KEYS = [
+  { key: "ALL", labelKey: "fAll" },
+  { key: "ACTION_CREATED", labelKey: "fCreated" },
+  { key: "ACTION_COMPLETED", labelKey: "fCompleted" },
+  { key: "ACTION_CANCELLED", labelKey: "fCancelled" },
+  { key: "PHASE_CHANGED", labelKey: "fPhases" },
+  { key: "PILOT_CHANGED", labelKey: "fPilots" },
+  { key: "DUE_DATE_CHANGED", labelKey: "fDueDates" },
 ];
 
 function fmt(iso: string): string {
@@ -67,6 +70,7 @@ function fmt(iso: string): string {
 
 export default function HistoriqueScreen() {
   const { toast, alert } = useUI();
+  const { t: tr } = useTranslation();
   const [items, setItems] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,7 +83,7 @@ export default function HistoriqueScreen() {
       setError(null);
       setItems(await listHistory(500));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   };
 
@@ -102,32 +106,32 @@ export default function HistoriqueScreen() {
       setExportingFull(true);
       const full = await listHistoryFull(5000);
       if (full.length === 0) {
-        toast.info("Aucune donnée à exporter");
+        toast.info(tr("export.noData"));
         return;
       }
       await exportCsv({
         filename: "historique-complet",
         headers: [
-          "ID",
-          "Date ISO",
-          "Date",
-          "Type (code)",
-          "Type (libellé)",
-          "Ancienne valeur",
-          "Nouvelle valeur",
-          "Commentaire",
-          "PDCA référence",
-          "PDCA sujet",
-          "Action",
-          "Utilisateur nom",
-          "Utilisateur email",
+          tr("historiqueScreen.hId"),
+          tr("historiqueScreen.hDateIso"),
+          tr("historiqueScreen.hDate"),
+          tr("historiqueScreen.hTypeCode"),
+          tr("historiqueScreen.hTypeLabel"),
+          tr("historiqueScreen.hOldValue"),
+          tr("historiqueScreen.hNewValue"),
+          tr("historiqueScreen.hComment"),
+          tr("historiqueScreen.hPdcaRef"),
+          tr("historiqueScreen.hPdcaSubject"),
+          tr("historiqueScreen.hAction"),
+          tr("historiqueScreen.hUserName"),
+          tr("historiqueScreen.hUserEmail"),
         ],
         rows: full.map((h) => [
           h.id,
           h.created_at,
           fmt(h.created_at),
           h.event_type,
-          EVENT_LABELS[h.event_type] ?? h.event_type,
+          eventLabel(tr, h.event_type),
           h.old_value ?? "",
           h.new_value ?? "",
           h.comment ?? "",
@@ -138,10 +142,10 @@ export default function HistoriqueScreen() {
           h.user_email ?? "",
         ]),
       });
-      toast.success(`Export complet : ${full.length} événement(s)`);
+      toast.success(`${tr("historiqueScreen.exportDone")} : ${full.length}`);
     } catch (e) {
       alert({
-        title: "Erreur d'export",
+        title: tr("historiqueScreen.exportFailed"),
         message: e instanceof Error ? e.message : "Erreur",
       });
     } finally {
@@ -155,9 +159,9 @@ export default function HistoriqueScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Historique</Text>
+        <Text style={styles.title}>{tr("historiqueScreen.title")}</Text>
         <Text style={styles.sub}>
-          {filtered.length} / {items.length} événement(s)
+          {filtered.length} / {items.length} {tr("historiqueScreen.subtitleCount")}
         </Text>
       </View>
 
@@ -167,7 +171,7 @@ export default function HistoriqueScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filtersContent}
         >
-          {FILTERS.map((f) => {
+          {FILTER_KEYS.map((f) => {
             const active = filter === f.key;
             return (
               <Pressable
@@ -176,7 +180,7 @@ export default function HistoriqueScreen() {
                 style={[styles.chip, active && styles.chipActive]}
               >
                 <Text style={[styles.chipTxt, active && styles.chipTxtActive]}>
-                  {f.label}
+                  {tr("historiqueScreen." + f.labelKey)}
                 </Text>
               </Pressable>
             );
@@ -186,20 +190,20 @@ export default function HistoriqueScreen() {
 
       <View style={styles.exportWrap}>
         <ExportButton
-          label="📊 Exporter la vue (6 colonnes)"
+          label={tr("historiqueScreen.exportView")}
           filename="historique-vue"
           headers={[
-            "Date",
-            "Type",
-            "Ancienne valeur",
-            "Nouvelle valeur",
-            "Commentaire",
-            "PDCA",
+            tr("historiqueScreen.hDate"),
+            tr("historiqueScreen.hTypeLabel"),
+            tr("historiqueScreen.hOldValue"),
+            tr("historiqueScreen.hNewValue"),
+            tr("historiqueScreen.hComment"),
+            tr("historiqueScreen.hPdcaRef"),
           ]}
           rows={() =>
             filtered.map((h) => [
               fmt(h.created_at),
-              EVENT_LABELS[h.event_type] ?? h.event_type,
+              eventLabel(tr, h.event_type),
               h.old_value ?? "",
               h.new_value ?? "",
               h.comment ?? "",
@@ -209,24 +213,23 @@ export default function HistoriqueScreen() {
         />
         <View style={{ height: theme.spacing(2) }} />
         <Button
-          label="📥 Exporter tout (13 colonnes)"
+          label={tr("historiqueScreen.exportFull")}
           variant="secondary"
           onPress={handleExportFull}
           loading={exportingFull}
         />
         <Text style={styles.exportHint}>
-          "Vue" = filtre actuel, format compact · "Tout" = toutes les lignes +
-          utilisateur, PDCA, action
+          {tr("historiqueScreen.exportHint")}
         </Text>
       </View>
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="Aucun événement"
+          title={tr("historiqueScreen.empty")}
           subtitle={
             filter === "ALL"
               ? undefined
-              : "Aucun événement pour ce filtre."
+              : tr("historiqueScreen.emptyFiltered")
           }
         />
       ) : (
@@ -245,7 +248,7 @@ export default function HistoriqueScreen() {
             />
           }
           renderItem={({ item }: { item: HistoryEntry }) => {
-            const label = EVENT_LABELS[item.event_type] ?? item.event_type;
+            const label = eventLabel(tr, item.event_type);
             const colors =
               EVENT_COLORS[item.event_type] ?? {
                 fg: theme.colors.primary,
@@ -277,7 +280,7 @@ export default function HistoriqueScreen() {
                 ) : null}
 
                 {item.pdca_reference ? (
-                  <Text style={styles.ref}>PDCA {item.pdca_reference}</Text>
+                  <Text style={styles.ref}>{tr("historiqueScreen.pdcaRef")} {item.pdca_reference}</Text>
                 ) : null}
               </Card>
             );
