@@ -33,6 +33,13 @@ import type {
 } from "@/types/database";
 import { theme } from "@/theme";
 
+const PHASE_STEPS: { key: PDCAPhase; label: string; pct: number }[] = [
+  { key: "P", label: "Plan", pct: 25 },
+  { key: "D", label: "Do", pct: 50 },
+  { key: "C", label: "Check", pct: 75 },
+  { key: "A", label: "Act", pct: 100 },
+];
+
 export default function PDCADetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session, profile } = useAuth();
@@ -67,7 +74,6 @@ export default function PDCADetail() {
     })();
   }, [load]);
 
-  // Load signatures whenever the item changes
   useEffect(() => {
     if (!item) return;
     let cancelled = false;
@@ -77,9 +83,7 @@ export default function PDCADetail() {
         try {
           const s = await getActionSignature(a.id);
           if (s) map[a.id] = s;
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
       if (!cancelled) setSignatureByAction(map);
     })();
@@ -181,60 +185,141 @@ export default function PDCADetail() {
     }
   };
 
+  // Compute progress from actions
+  const totalActions = item.pdca_actions.length;
+  const completedActions = item.pdca_actions.filter(
+    (a) => a.status === "COMPLETED",
+  ).length;
+  const progressPct =
+    totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : 0;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* ── Header PDCA ──────────────────────────────── */}
       <Card>
-        <View style={styles.row}>
+        <View style={styles.headRow}>
           <Text style={styles.ref}>{item.reference}</Text>
           <StatusBadge status={item.status} />
         </View>
         <Text style={styles.subject}>{item.subject}</Text>
-        <Text style={styles.meta}>
-          {item.line} • {item.department ?? "—"} • {item.defect_type ?? "—"}
-        </Text>
-        <View style={{ marginTop: 8 }}>
+        {item.description ? (
+          <Text style={styles.description}>{item.description}</Text>
+        ) : null}
+
+        <View style={styles.metaRow}>
+          <MetaChip icon="🏭" label={item.line} />
+          {item.department ? (
+            <MetaChip icon="🏢" label={item.department} />
+          ) : null}
+          {item.defect_type ? (
+            <MetaChip icon="🔍" label={item.defect_type} />
+          ) : null}
+        </View>
+
+        <View style={styles.priorityRow}>
           <PriorityBadge priority={item.priority} />
+        </View>
+
+        {/* Global progress bar */}
+        <View style={styles.progressSection}>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressLabel}>Avancement global</Text>
+            <Text style={styles.progressPct}>{progressPct}%</Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <View
+              style={[styles.progressFill, { width: `${progressPct}%` }]}
+            />
+          </View>
+          <Text style={styles.progressMeta}>
+            {completedActions} / {totalActions} action{totalActions > 1 ? "s" : ""}{" "}
+            terminée{completedActions > 1 ? "s" : ""}
+          </Text>
+        </View>
+
+        {/* PDCA phase overview */}
+        <View style={styles.phasesRow}>
+          {PHASE_STEPS.map((p) => (
+            <View key={p.key} style={styles.phaseItem}>
+              <View style={styles.phaseDot}>
+                <Text style={styles.phaseDotTxt}>{p.key}</Text>
+              </View>
+              <Text style={styles.phaseLbl}>{p.label}</Text>
+              <Text style={styles.phasePct}>{p.pct}%</Text>
+            </View>
+          ))}
         </View>
       </Card>
 
-      <Text style={styles.section}>Actions ({item.pdca_actions.length})</Text>
-      {item.pdca_actions.map((a, i) => (
-        <View key={a.id}>
-          <ActionCard
-            index={i}
-            action={a}
-            priority={item.priority}
-            onPhaseChange={(next) => handlePhaseChange(a, next)}
-            onEdit={() => setEditingAction(a)}
-          />
-          <ActionPhotos actionId={a.id} />
-          {signatureByAction[a.id] ? (
-            <SignatureView signature={signatureByAction[a.id]!} />
-          ) : null}
-          <View style={styles.actionButtons}>
+      {/* ── Actions list ─────────────────────────────── */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Actions</Text>
+        <View style={styles.sectionCount}>
+          <Text style={styles.sectionCountTxt}>{totalActions}</Text>
+        </View>
+      </View>
+
+      {item.pdca_actions.length === 0 ? (
+        <Card>
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyIcon}>📝</Text>
+            <Text style={styles.emptyTitle}>Aucune action</Text>
+            <Text style={styles.emptyTxt}>
+              Ce PDCA n'a pas encore d'action enregistrée.
+            </Text>
+          </View>
+        </Card>
+      ) : (
+        item.pdca_actions.map((a, i) => (
+          <View key={a.id} style={styles.actionWrap}>
+            <ActionCard
+              index={i}
+              action={a}
+              priority={item.priority}
+              onPhaseChange={(next) => handlePhaseChange(a, next)}
+              onEdit={() => setEditingAction(a)}
+            />
+
+            <ActionPhotos actionId={a.id} />
+
+            {signatureByAction[a.id] ? (
+              <SignatureView signature={signatureByAction[a.id]!} />
+            ) : null}
+
             {a.status !== "CANCELLED" && a.status !== "COMPLETED" ? (
-              <Button
-                label="Annuler l'action"
-                variant="secondary"
-                onPress={() => setCancellingAction(a)}
-              />
+              <View style={styles.actionBtnWrap}>
+                <Button
+                  label="Annuler l'action"
+                  variant="secondary"
+                  size="sm"
+                  onPress={() => setCancellingAction(a)}
+                />
+              </View>
             ) : (
-              <Text style={styles.statusLabel}>
-                {a.status === "COMPLETED" ? "✓ Terminée" : "⊘ Annulée"}
-              </Text>
+              <View style={styles.statusBanner}>
+                <Text style={styles.statusBannerTxt}>
+                  {a.status === "COMPLETED"
+                    ? "✓ Action terminée"
+                    : "⊘ Action annulée"}
+                </Text>
+              </View>
             )}
           </View>
-        </View>
-      ))}
+        ))
+      )}
 
+      {/* ── Danger zone ─────────────────────────────── */}
       {item.status !== "CANCELLED" ? (
-        <View style={{ marginTop: 12 }}>
+        <View style={styles.dangerWrap}>
           <Button label="Annuler ce PDCA" variant="danger" onPress={onCancel} />
         </View>
       ) : (
-        <Text style={styles.cancelled}>Ce PDCA est annulé.</Text>
+        <View style={styles.cancelledBanner}>
+          <Text style={styles.cancelledTxt}>Ce PDCA est annulé</Text>
+        </View>
       )}
 
+      {/* ── Modals ───────────────────────────────────── */}
       <EditActionModal
         visible={!!editingAction}
         action={editingAction}
@@ -282,14 +367,225 @@ export default function PDCADetail() {
   );
 }
 
+function MetaChip({ icon, label }: { icon: string; label: string }) {
+  return (
+    <View style={styles.metaChip}>
+      <Text style={styles.metaChipIcon}>{icon}</Text>
+      <Text style={styles.metaChipTxt} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { padding: 16, backgroundColor: theme.colors.bg, paddingBottom: 60 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  ref: { fontWeight: "700", color: theme.colors.primary },
-  subject: { fontSize: 17, fontWeight: "600", marginTop: 8, color: theme.colors.text },
-  meta: { fontSize: 12, color: theme.colors.textMuted, marginTop: 4 },
-  section: { fontSize: 16, fontWeight: "700", marginVertical: 8, color: theme.colors.text },
-  actionButtons: { marginTop: -4, marginBottom: 12, paddingHorizontal: 4 },
-  statusLabel: { textAlign: "center", color: theme.colors.textMuted, fontWeight: "700" },
-  cancelled: { marginTop: 12, textAlign: "center", color: theme.colors.textMuted, fontWeight: "700" },
+  container: {
+    padding: theme.spacing(4),
+    backgroundColor: theme.colors.bg,
+    paddingBottom: 60,
+  },
+
+  // ── Header ────────────────────────────────────
+  headRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing(2),
+  },
+  ref: {
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.primary,
+    fontSize: theme.font.size.base,
+    letterSpacing: 0.3,
+  },
+  subject: {
+    fontSize: theme.font.size.xl,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.text,
+    marginTop: theme.spacing(1),
+    lineHeight: 26,
+  },
+  description: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing(2),
+    lineHeight: 20,
+  },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing(2),
+    marginTop: theme.spacing(4),
+  },
+  metaChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: theme.colors.neutralSoft,
+    paddingHorizontal: theme.spacing(2),
+    paddingVertical: 5,
+    borderRadius: theme.radius.pill,
+    maxWidth: "100%",
+  },
+  metaChipIcon: { fontSize: 12 },
+  metaChipTxt: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.textSecondary,
+    fontWeight: theme.font.weight.medium,
+  },
+  priorityRow: { marginTop: theme.spacing(3) },
+
+  // ── Progress ──────────────────────────────────
+  progressSection: {
+    marginTop: theme.spacing(5),
+    paddingTop: theme.spacing(5),
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.divider,
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: theme.spacing(2),
+  },
+  progressLabel: {
+    fontSize: theme.font.size.sm,
+    fontWeight: theme.font.weight.semibold,
+    color: theme.colors.textSecondary,
+  },
+  progressPct: {
+    fontSize: theme.font.size.lg,
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.primary,
+  },
+  progressTrack: {
+    height: 8,
+    backgroundColor: theme.colors.divider,
+    borderRadius: theme.radius.pill,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: 8,
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.radius.pill,
+  },
+  progressMeta: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(2),
+    fontWeight: theme.font.weight.medium,
+  },
+
+  // ── Phases overview ───────────────────────────
+  phasesRow: {
+    flexDirection: "row",
+    marginTop: theme.spacing(4),
+    justifyContent: "space-between",
+  },
+  phaseItem: { alignItems: "center", flex: 1 },
+  phaseDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: theme.colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: theme.spacing(1),
+  },
+  phaseDotTxt: {
+    fontSize: theme.font.size.base,
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.primary,
+  },
+  phaseLbl: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.text,
+    fontWeight: theme.font.weight.semibold,
+  },
+  phasePct: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+
+  // ── Section header ────────────────────────────
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing(2),
+    marginTop: theme.spacing(6),
+    marginBottom: theme.spacing(3),
+  },
+  sectionTitle: {
+    fontSize: theme.font.size.sm,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  sectionCount: {
+    paddingHorizontal: theme.spacing(2),
+    paddingVertical: 2,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.primarySoft,
+  },
+  sectionCountTxt: {
+    fontSize: theme.font.size.xs,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.primary,
+  },
+
+  // ── Empty ─────────────────────────────────────
+  emptyBox: { alignItems: "center", paddingVertical: theme.spacing(4) },
+  emptyIcon: { fontSize: 40, marginBottom: theme.spacing(3) },
+  emptyTitle: {
+    fontSize: theme.font.size.lg,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing(1),
+  },
+  emptyTxt: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+  },
+
+  // ── Action wrapper ────────────────────────────
+  actionWrap: { marginBottom: theme.spacing(3) },
+  actionBtnWrap: { marginTop: -theme.spacing(2), marginBottom: theme.spacing(3) },
+  statusBanner: {
+    marginTop: -theme.spacing(2),
+    marginBottom: theme.spacing(3),
+    paddingVertical: theme.spacing(2),
+    paddingHorizontal: theme.spacing(3),
+    backgroundColor: theme.colors.neutralSoft,
+    borderRadius: theme.radius.md,
+    alignItems: "center",
+  },
+  statusBannerTxt: {
+    fontSize: theme.font.size.sm,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.textSecondary,
+  },
+
+  // ── Danger ────────────────────────────────────
+  dangerWrap: {
+    marginTop: theme.spacing(6),
+    paddingTop: theme.spacing(5),
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.divider,
+  },
+  cancelledBanner: {
+    marginTop: theme.spacing(6),
+    paddingVertical: theme.spacing(3),
+    paddingHorizontal: theme.spacing(4),
+    backgroundColor: theme.colors.dangerSoft,
+    borderRadius: theme.radius.md,
+    alignItems: "center",
+  },
+  cancelledTxt: {
+    fontSize: theme.font.size.base,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.danger,
+  },
 });
