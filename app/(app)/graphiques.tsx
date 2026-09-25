@@ -21,6 +21,7 @@ import {
   pdcaByPriority,
 } from "@/services/analyticsService";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 export default function Graphiques() {
   const [items, setItems] = useState<PDCAWithActions[]>([]);
@@ -29,6 +30,7 @@ export default function Graphiques() {
   const [error, setError] = useState<string | null>(null);
 
   const { departments, defectTypes } = useCompanyOptions();
+  const { t: tr } = useTranslation();
 
   const resolveDept = (id: string | null | undefined, fallback: string) => {
     if (!id) return fallback;
@@ -44,7 +46,7 @@ export default function Graphiques() {
       setError(null);
       setItems(await listPDCA());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   };
 
@@ -79,22 +81,22 @@ export default function Graphiques() {
     >
       {/* ── Header ───────────────────────────────── */}
       <View style={styles.header}>
-        <Text style={styles.title}>Graphiques</Text>
-        <Text style={styles.sub}>Analyse visuelle de vos PDCA</Text>
+        <Text style={styles.title}>{tr("graphiquesScreen.title")}</Text>
+        <Text style={styles.sub}>{tr("graphiquesScreen.subtitle")}</Text>
       </View>
 
       {/* ── KPI tiles ────────────────────────────── */}
       <View style={styles.tiles}>
-        <StatTile label="PDCA total" value={items.length} />
-        <StatTile label="Actions totales" value={totalActions} />
-        <StatTile label="Durée moy. (j)" value={avg} color={theme.colors.primary} />
+        <StatTile label={tr("graphiquesScreen.kpiPdcaTotal")} value={items.length} />
+        <StatTile label={tr("graphiquesScreen.kpiActionsTotal")} value={totalActions} />
+        <StatTile label={tr("graphiquesScreen.kpiAvgDuration")} value={avg} color={theme.colors.primary} />
       </View>
 
       {/* ── 1. Départements ──────────────────────── */}
       <ChartCard
         index={1}
-        title="PDCA par département"
-        hint="Répartition du volume par service"
+        title={tr("graphiquesScreen.byDepartment")}
+        hint={tr("graphiquesScreen.byDepartmentHint")}
       >
         <BarChart data={pdcaByDepartment(items, resolveDept)} />
       </ChartCard>
@@ -102,8 +104,8 @@ export default function Graphiques() {
       {/* ── 2. Priorité ─────────────────────────── */}
       <ChartCard
         index={2}
-        title="PDCA par priorité"
-        hint="Urgence relative des sujets"
+        title={tr("graphiquesScreen.byPriority")}
+        hint={tr("graphiquesScreen.byPriorityHint")}
       >
         <DonutChart data={pdcaByPriority(items)} />
       </ChartCard>
@@ -111,8 +113,8 @@ export default function Graphiques() {
       {/* ── 3. Type de défaut ───────────────────── */}
       <ChartCard
         index={3}
-        title="PDCA par type de défaut"
-        hint="Origine des non-conformités"
+        title={tr("graphiquesScreen.byDefect")}
+        hint={tr("graphiquesScreen.byDefectHint")}
       >
         <BarChart data={pdcaByDefectType(items, resolveDefect)} />
       </ChartCard>
@@ -120,8 +122,8 @@ export default function Graphiques() {
       {/* ── 4. Actions par phase ────────────────── */}
       <ChartCard
         index={4}
-        title="Actions par phase P/D/C/A"
-        hint="Répartition du cycle PDCA"
+        title={tr("graphiquesScreen.byPhase")}
+        hint={tr("graphiquesScreen.byPhaseHint")}
       >
         <BarChart data={actionsByPhase(items)} />
       </ChartCard>
@@ -129,8 +131,8 @@ export default function Graphiques() {
       {/* ── 5. Completed vs overdue ─────────────── */}
       <ChartCard
         index={5}
-        title="Terminées vs En retard"
-        hint="Performance globale"
+        title={tr("graphiquesScreen.completedVsOverdue")}
+        hint={tr("graphiquesScreen.completedVsOverdueHint")}
       >
         <DonutChart data={completedVsOverdue(items)} />
       </ChartCard>
@@ -138,8 +140,8 @@ export default function Graphiques() {
       {/* ── 6. Créations mensuelles ─────────────── */}
       <ChartCard
         index={6}
-        title="Créations mensuelles"
-        hint="6 derniers mois"
+        title={tr("graphiquesScreen.monthlyCreations")}
+        hint={tr("graphiquesScreen.monthlyCreationsHint")}
       >
         <BarChart data={monthlyCreations(items, 6)} />
       </ChartCard>
@@ -151,24 +153,24 @@ export default function Graphiques() {
             <Text style={styles.kpiIndex}>7</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.kpiTitle}>Durée moyenne de clôture</Text>
-            <Text style={styles.kpiHint}>Temps moyen pour terminer une action</Text>
+            <Text style={styles.kpiTitle}>{tr("graphiquesScreen.avgTitle")}</Text>
+            <Text style={styles.kpiHint}>{tr("graphiquesScreen.avgHint")}</Text>
           </View>
         </View>
 
         <View style={styles.bigStatWrap}>
           <Text style={styles.bigStatValue}>{avg}</Text>
-          <Text style={styles.bigStatUnit}>jours</Text>
+          <Text style={styles.bigStatUnit}>{tr("graphiquesScreen.days")}</Text>
         </View>
 
         <Text style={styles.bigStatMeta}>
-          Basée sur{" "}
+          {tr("graphiquesScreen.basedOnPrefix")}{" "}
           {items.reduce(
             (s, p) =>
               s + p.pdca_actions.filter((a) => a.status === "COMPLETED").length,
             0,
           )}{" "}
-          action(s) terminée(s)
+          {tr("graphiquesScreen.basedOnSuffix")}
         </Text>
       </Card>
 

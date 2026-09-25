@@ -20,6 +20,7 @@ import {
 import { getCompany, CompanyRow } from "@/services/companiesService";
 import { useAuth } from "@/hooks/useAuth";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 function startOfWeek(d: Date): Date {
   const copy = new Date(d);
@@ -36,15 +37,18 @@ function addDays(d: Date, n: number): Date {
   return copy;
 }
 
-function fmtRange(a: Date, b: Date): string {
+const LOCALES: Record<string, string> = { fr: "fr-FR", en: "en-US", ar: "ar-SA" };
+function fmtRange(a: Date, b: Date, locale: string): string {
   const f = (x: Date) =>
-    x.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+    x.toLocaleDateString(locale, { day: "2-digit", month: "short" });
   return `${f(a)} → ${f(addDays(b, -1))}`;
 }
 
 export default function RapportHebdo() {
   const { profile } = useAuth();
   const { toast, alert } = useUI();
+  const { t: tr, language } = useTranslation();
+  const locale = LOCALES[language] ?? "fr-FR";
   const [items, setItems] = useState<PDCAWithActions[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +70,7 @@ export default function RapportHebdo() {
       setError(null);
       setItems(await listPDCA());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   };
 
@@ -144,9 +148,9 @@ export default function RapportHebdo() {
       setExporting(true);
       const data = computeWeeklyReport(items, week.start, week.end, company);
       await exportWeeklyReport(data);
-      toast.success("Rapport généré");
+      toast.success(tr("rapportHebdo.generated"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec de l'export");
+      toast.error(e instanceof Error ? e.message : tr("rapportHebdo.exportFailed"));
     } finally {
       setExporting(false);
     }
@@ -162,9 +166,9 @@ export default function RapportHebdo() {
     >
       {/* ── Header ───────────────────────────────────── */}
       <View style={styles.header}>
-        <Text style={styles.title}>Rapport hebdomadaire</Text>
+        <Text style={styles.title}>{tr("rapportHebdo.title")}</Text>
         <Text style={styles.sub}>
-          Synthèse de la semaine · vue direction
+          {tr("rapportHebdo.subtitle")}
         </Text>
       </View>
 
@@ -174,49 +178,49 @@ export default function RapportHebdo() {
           onPress={() => setWeekOffset((w) => w - 1)}
           style={styles.navBtn}
         >
-          <Text style={styles.navTxt}>‹ Précédent</Text>
+          <Text style={styles.navTxt}>{tr("rapportHebdo.prev")}</Text>
         </Pressable>
         <View style={styles.rangeWrap}>
-          <Text style={styles.rangeLbl}>Semaine</Text>
-          <Text style={styles.rangeTxt}>{fmtRange(week.start, week.end)}</Text>
+          <Text style={styles.rangeLbl}>{tr("rapportHebdo.week")}</Text>
+          <Text style={styles.rangeTxt}>{fmtRange(week.start, week.end, locale)}</Text>
         </View>
         <Pressable
           onPress={() => setWeekOffset((w) => Math.min(0, w + 1))}
           style={[styles.navBtn, weekOffset === 0 && { opacity: 0.3 }]}
           disabled={weekOffset === 0}
         >
-          <Text style={styles.navTxt}>Suivant ›</Text>
+          <Text style={styles.navTxt}>{tr("rapportHebdo.next")}</Text>
         </Pressable>
       </View>
 
       {/* ── KPIs ─────────────────────────────────────── */}
       <View style={styles.kpiGrid}>
         <KpiCard
-          label="PDCA créés"
+          label={tr("rapportHebdo.kpiPdcaCreated")}
           value={report.pdcasCreated}
           color={theme.colors.primary}
           icon="📝"
         />
         <KpiCard
-          label="PDCA clôturés"
+          label={tr("rapportHebdo.kpiPdcaClosed")}
           value={report.pdcasClosed}
           color={theme.colors.success}
           icon="✓"
         />
         <KpiCard
-          label="Actions ouvertes"
+          label={tr("rapportHebdo.kpiActionsOpen")}
           value={report.open}
           color={theme.colors.info}
           icon="▶"
         />
         <KpiCard
-          label="Actions en retard"
+          label={tr("rapportHebdo.kpiActionsOverdue")}
           value={report.overdue}
           color={theme.colors.danger}
           icon="⚠"
         />
         <KpiCard
-          label="Actions terminées"
+          label={tr("rapportHebdo.kpiActionsCompleted")}
           value={report.completed}
           color={theme.colors.success}
           icon="🏁"
@@ -227,24 +231,24 @@ export default function RapportHebdo() {
       {/* ── Export PDF ───────────────────────────────── */}
       <View style={{ marginBottom: theme.spacing(5) }}>
         <Button
-          label="📄 Exporter en PDF"
+          label={tr("rapportHebdo.exportPdf")}
           onPress={handleExport}
           loading={exporting}
         />
       </View>
 
       {/* ── Top lists ────────────────────────────────── */}
-      <SectionTitle index={1} label="Top défauts" />
+      <SectionTitle index={1} label={tr("rapportHebdo.topDefects")} />
       <Card>
         <BarChart data={report.topDefects} />
       </Card>
 
-      <SectionTitle index={2} label="Top départements" />
+      <SectionTitle index={2} label={tr("rapportHebdo.topDepartments")} />
       <Card>
         <BarChart data={report.topDepartments} />
       </Card>
 
-      <SectionTitle index={3} label="Top pilotes" />
+      <SectionTitle index={3} label={tr("rapportHebdo.topPilots")} />
       <Card>
         <BarChart data={report.topPilots} />
       </Card>
