@@ -1,15 +1,24 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { Card } from "@/components/Card";
-import { BarChart, StatTile } from "@/components/Charts";
+import { Button } from "@/components/Button";
+import { BarChart } from "@/components/Charts";
 import { ErrorState, LoadingState } from "@/components/States";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
-import { Button } from "@/components/Button";
-import { computeWeeklyReport, exportWeeklyReport } from "@/services/reportService";
+import { useCompanyOptions } from "@/hooks/useCompanyOptions";
+import { useUI } from "@/ui/UIProvider";
+import {
+  computeWeeklyReport,
+  exportWeeklyReport,
+} from "@/services/reportService";
 import { getCompany, CompanyRow } from "@/services/companiesService";
 import { useAuth } from "@/hooks/useAuth";
-import { useUI } from "@/ui/UIProvider";
-import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { theme } from "@/theme";
 
 function startOfWeek(d: Date): Date {
@@ -29,30 +38,23 @@ function addDays(d: Date, n: number): Date {
 
 function fmtRange(a: Date, b: Date): string {
   const f = (x: Date) =>
-    x.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+    x.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
   return `${f(a)} → ${f(addDays(b, -1))}`;
 }
 
 export default function RapportHebdo() {
+  const { profile } = useAuth();
+  const { toast, alert } = useUI();
   const [items, setItems] = useState<PDCAWithActions[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
-  const { profile } = useAuth();
-  const { toast } = useUI();
   const [company, setCompany] = useState<CompanyRow | null>(null);
-  const { departments, defectTypes } = useCompanyOptions();
-
-  const resolveDept = (id: string | null | undefined, fallback: string) => {
-    if (!id) return fallback;
-    return departments.find((d) => d.id === id)?.label ?? fallback;
-  };
-  const resolveDefect = (id: string | null | undefined, fallback: string) => {
-    if (!id) return fallback;
-    return defectTypes.find((d) => d.id === id)?.label ?? fallback;
-  };
   const [exporting, setExporting] = useState(false);
-  const companyId = (profile as { company_id?: string } | null)?.company_id;
+
+  const { departments, defectTypes } = useCompanyOptions();
+  const companyId =
+    (profile as { company_id?: string } | null)?.company_id ?? null;
 
   useEffect(() => {
     if (!companyId) return;
@@ -137,13 +139,10 @@ export default function RapportHebdo() {
     };
   }, [items, week]);
 
-  if (loading) return <LoadingState />;
-  if (error) return <ErrorState message={error} />;
-
   const handleExport = async () => {
     try {
       setExporting(true);
-      const data = computeWeeklyReport(items, week.start, week.end, company, resolveDept, resolveDefect);
+      const data = computeWeeklyReport(items, week.start, week.end, company);
       await exportWeeklyReport(data);
       toast.success("Rapport généré");
     } catch (e) {
@@ -153,13 +152,23 @@ export default function RapportHebdo() {
     }
   };
 
+  if (loading) return <LoadingState />;
+  if (error) return <ErrorState message={error} />;
+
   return (
     <ScrollView
-      style={{ backgroundColor: theme.colors.bg }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
+      style={styles.root}
+      contentContainerStyle={styles.container}
     >
-      <Text style={styles.h1}>Rapport hebdomadaire</Text>
+      {/* ── Header ───────────────────────────────────── */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Rapport hebdomadaire</Text>
+        <Text style={styles.sub}>
+          Synthèse de la semaine · vue direction
+        </Text>
+      </View>
 
+      {/* ── Week selector ────────────────────────────── */}
       <View style={styles.weekRow}>
         <Pressable
           onPress={() => setWeekOffset((w) => w - 1)}
@@ -167,27 +176,56 @@ export default function RapportHebdo() {
         >
           <Text style={styles.navTxt}>‹ Précédent</Text>
         </Pressable>
-        <Text style={styles.range}>{fmtRange(week.start, week.end)}</Text>
+        <View style={styles.rangeWrap}>
+          <Text style={styles.rangeLbl}>Semaine</Text>
+          <Text style={styles.rangeTxt}>{fmtRange(week.start, week.end)}</Text>
+        </View>
         <Pressable
           onPress={() => setWeekOffset((w) => Math.min(0, w + 1))}
-          style={styles.navBtn}
+          style={[styles.navBtn, weekOffset === 0 && { opacity: 0.3 }]}
           disabled={weekOffset === 0}
         >
-          <Text style={[styles.navTxt, weekOffset === 0 && { opacity: 0.3 }]}>
-            Suivant ›
-          </Text>
+          <Text style={styles.navTxt}>Suivant ›</Text>
         </Pressable>
       </View>
 
-      <View style={styles.tiles}>
-        <StatTile label="PDCA créés" value={report.pdcasCreated} />
-        <StatTile label="PDCA clôturés" value={report.pdcasClosed} />
-        <StatTile label="Actions ouvertes" value={report.open} />
-        <StatTile label="Actions en retard" value={report.overdue} color={theme.colors.danger} />
-        <StatTile label="Actions terminées" value={report.completed} color={theme.colors.success} />
+      {/* ── KPIs ─────────────────────────────────────── */}
+      <View style={styles.kpiGrid}>
+        <KpiCard
+          label="PDCA créés"
+          value={report.pdcasCreated}
+          color={theme.colors.primary}
+          icon="📝"
+        />
+        <KpiCard
+          label="PDCA clôturés"
+          value={report.pdcasClosed}
+          color={theme.colors.success}
+          icon="✓"
+        />
+        <KpiCard
+          label="Actions ouvertes"
+          value={report.open}
+          color={theme.colors.info}
+          icon="▶"
+        />
+        <KpiCard
+          label="Actions en retard"
+          value={report.overdue}
+          color={theme.colors.danger}
+          icon="⚠"
+        />
+        <KpiCard
+          label="Actions terminées"
+          value={report.completed}
+          color={theme.colors.success}
+          icon="🏁"
+          wide
+        />
       </View>
 
-      <View style={{ marginTop: 12, marginBottom: 12 }}>
+      {/* ── Export PDF ───────────────────────────────── */}
+      <View style={{ marginBottom: theme.spacing(5) }}>
         <Button
           label="📄 Exporter en PDF"
           onPress={handleExport}
@@ -195,40 +233,186 @@ export default function RapportHebdo() {
         />
       </View>
 
+      {/* ── Top lists ────────────────────────────────── */}
+      <SectionTitle index={1} label="Top défauts" />
       <Card>
-        <Text style={styles.h2}>Top défauts</Text>
         <BarChart data={report.topDefects} />
       </Card>
 
+      <SectionTitle index={2} label="Top départements" />
       <Card>
-        <Text style={styles.h2}>Top départements</Text>
         <BarChart data={report.topDepartments} />
       </Card>
 
+      <SectionTitle index={3} label="Top pilotes" />
       <Card>
-        <Text style={styles.h2}>Top pilotes</Text>
         <BarChart data={report.topPilots} />
       </Card>
+
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
+function KpiCard({
+  label,
+  value,
+  color,
+  icon,
+  wide,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  icon: string;
+  wide?: boolean;
+}) {
+  return (
+    <View style={[styles.kpi, wide && styles.kpiWide]}>
+      <View style={[styles.kpiIconBox, { backgroundColor: color + "18" }]}>
+        <Text style={[styles.kpiIcon, { color }]}>{icon}</Text>
+      </View>
+      <Text style={[styles.kpiValue, { color }]}>{value}</Text>
+      <Text style={styles.kpiLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function SectionTitle({ index, label }: { index: number; label: string }) {
+  return (
+    <View style={styles.sectionTitleWrap}>
+      <View style={styles.sectionNum}>
+        <Text style={styles.sectionNumTxt}>{index}</Text>
+      </View>
+      <Text style={styles.sectionLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  h1: { fontSize: 24, fontWeight: "800", color: theme.colors.text, marginBottom: 12 },
-  h2: { fontSize: 15, fontWeight: "700", color: theme.colors.text, marginBottom: 10 },
+  root: { flex: 1, backgroundColor: theme.colors.bg },
+  container: {
+    padding: theme.spacing(4),
+    paddingBottom: 60,
+  },
+
+  // ── Header ────────────────────────────────────
+  header: { marginBottom: theme.spacing(5) },
+  title: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.text,
+  },
+  sub: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+  },
+
+  // ── Week selector ─────────────────────────────
   weekRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
-    padding: 8,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.divider,
+    padding: theme.spacing(2),
+    marginBottom: theme.spacing(4),
+    ...theme.shadow.sm,
   },
-  range: { fontWeight: "700", color: theme.colors.text },
-  navBtn: { padding: 6 },
-  navTxt: { color: theme.colors.primary, fontWeight: "600" },
-  tiles: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 4 },
+  navBtn: {
+    paddingVertical: theme.spacing(2),
+    paddingHorizontal: theme.spacing(3),
+    borderRadius: theme.radius.md,
+  },
+  navTxt: {
+    color: theme.colors.primary,
+    fontWeight: theme.font.weight.bold,
+    fontSize: theme.font.size.sm,
+  },
+  rangeWrap: { flex: 1, alignItems: "center" },
+  rangeLbl: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    fontWeight: theme.font.weight.bold,
+  },
+  rangeTxt: {
+    fontSize: theme.font.size.md,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.text,
+    marginTop: 2,
+  },
+
+  // ── KPI grid ──────────────────────────────────
+  kpiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing(2),
+    marginBottom: theme.spacing(4),
+  },
+  kpi: {
+    flex: 1,
+    minWidth: "30%",
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+    paddingVertical: theme.spacing(3),
+    paddingHorizontal: theme.spacing(3),
+    alignItems: "center",
+    ...theme.shadow.sm,
+  },
+  kpiWide: { minWidth: "62%" },
+  kpiIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: theme.spacing(2),
+  },
+  kpiIcon: { fontSize: 16 },
+  kpiValue: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
+  },
+  kpiLabel: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+    fontWeight: theme.font.weight.medium,
+    textAlign: "center",
+  },
+
+  // ── Section title ─────────────────────────────
+  sectionTitleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing(2),
+    marginTop: theme.spacing(3),
+    marginBottom: theme.spacing(3),
+  },
+  sectionNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionNumTxt: {
+    color: "#fff",
+    fontSize: theme.font.size.xs,
+    fontWeight: theme.font.weight.bold,
+  },
+  sectionLabel: {
+    fontSize: theme.font.size.sm,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
 });
