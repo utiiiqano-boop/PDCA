@@ -3,6 +3,8 @@ import { Drawer } from "expo-router/drawer";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/I18nProvider";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useNotificationTap } from "@/hooks/useNotificationTap";
 import { LoadingState } from "@/components/States";
 import { DrawerContent } from "@/components/DrawerContent";
 import { theme } from "@/theme";
@@ -10,6 +12,8 @@ import { theme } from "@/theme";
 export default function AppLayout() {
   const { session, loading, profile } = useAuth();
   const { t: tr, isRTL } = useTranslation();
+  useNotifications();
+  useNotificationTap();
 
   if (loading) return <LoadingState />;
   if (!session) return <Redirect href="/(auth)/login" />;
