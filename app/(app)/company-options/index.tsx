@@ -2,7 +2,6 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,12 +14,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { theme } from "@/theme";
-import {
-  OPTION_KIND_LABELS,
-  OptionKind,
-} from "@/types/companyOptions";
+import { OPTION_KIND_LABELS, OptionKind } from "@/types/companyOptions";
 
-const TABS: OptionKind[] = ["lines", "departments", "pilots", "defect_types"];
+const TABS: { key: OptionKind; icon: string; shortLabel: string }[] = [
+  { key: "lines", icon: "🏭", shortLabel: "Lignes" },
+  { key: "departments", icon: "🏢", shortLabel: "Départements" },
+  { key: "pilots", icon: "👤", shortLabel: "Pilotes" },
+  { key: "defect_types", icon: "🔍", shortLabel: "Défauts" },
+];
 
 export default function CompanyOptionsScreen() {
   const { profile } = useAuth();
@@ -45,6 +46,7 @@ export default function CompanyOptionsScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
+        <Text style={styles.loadingTxt}>Chargement…</Text>
       </View>
     );
   }
@@ -63,30 +65,57 @@ export default function CompanyOptionsScreen() {
     }
   };
 
+  const countFor = (kind: OptionKind) =>
+    optionsFor(kind).filter((o) => o.active).length;
+
   return (
     <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabsScroll}
-        contentContainerStyle={styles.tabs}
-      >
-        {TABS.map((k) => {
-          const active = activeKind === k;
+      {/* ── Header ──────────────────────────────────── */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Configuration</Text>
+        <Text style={styles.sub}>
+          Personnalisez les listes de votre entreprise
+        </Text>
+      </View>
+
+      {/* ── Grille 2x2 ──────────────────────────────── */}
+      <View style={styles.grid}>
+        {TABS.map((t) => {
+          const active = activeKind === t.key;
+          const count = countFor(t.key);
           return (
             <Pressable
-              key={k}
-              onPress={() => setActiveKind(k)}
+              key={t.key}
+              onPress={() => setActiveKind(t.key)}
               style={[styles.tab, active && styles.tabActive]}
             >
-              <Text style={[styles.tabTxt, active && styles.tabTxtActive]}>
-                {OPTION_KIND_LABELS[k]}
+              <View style={styles.tabTop}>
+                <Text style={styles.tabIcon}>{t.icon}</Text>
+                <View
+                  style={[styles.tabBadge, active && styles.tabBadgeActive]}
+                >
+                  <Text
+                    style={[
+                      styles.tabBadgeTxt,
+                      active && styles.tabBadgeTxtActive,
+                    ]}
+                  >
+                    {count}
+                  </Text>
+                </View>
+              </View>
+              <Text
+                style={[styles.tabTxt, active && styles.tabTxtActive]}
+                numberOfLines={1}
+              >
+                {t.shortLabel}
               </Text>
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
 
+      {/* ── Panel ───────────────────────────────────── */}
       <OptionAdminPanel
         kind={activeKind}
         companyId={companyId}
@@ -99,26 +128,90 @@ export default function CompanyOptionsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bg },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.colors.bg },
-  tabsScroll: { flexGrow: 0, flexShrink: 0, maxHeight: 60 },
-  tabs: {
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+  center: {
+    flex: 1,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.bg,
+  },
+  loadingTxt: {
+    marginTop: theme.spacing(3),
+    color: theme.colors.textMuted,
+    fontSize: theme.font.size.base,
+  },
+
+  // ── Header ────────────────────────────────────
+  header: {
+    paddingHorizontal: theme.spacing(4),
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(3),
+  },
+  title: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.text,
+  },
+  sub: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+  },
+
+  // ── Grille 2x2 ────────────────────────────────
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: theme.spacing(4),
+    gap: theme.spacing(2),
+    marginBottom: theme.spacing(4),
   },
   tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
+    // 2 colonnes : (100% - gap) / 2 ; le gap fait spacing(2)=8 → calc à 48%
+    width: "48%",
+    flexGrow: 1,
+    minWidth: 140,
+    paddingHorizontal: theme.spacing(3),
+    paddingVertical: theme.spacing(3),
+    borderRadius: theme.radius.lg,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
+    ...theme.shadow.sm,
   },
   tabActive: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
+    ...theme.shadow.md,
   },
-  tabTxt: { fontSize: 13, color: theme.colors.text, fontWeight: "600" },
+  tabTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing(2),
+  },
+  tabIcon: { fontSize: 20 },
+  tabBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 26,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.neutralSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabBadgeActive: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  tabBadgeTxt: {
+    fontSize: theme.font.size.xs,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.textSecondary,
+  },
+  tabBadgeTxtActive: { color: "#fff" },
+  tabTxt: {
+    fontSize: theme.font.size.base,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.text,
+  },
   tabTxtActive: { color: "#fff" },
 });

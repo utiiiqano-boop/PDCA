@@ -65,7 +65,6 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
 
   const handleDelete = async (id: string) => {
     const opt = options.find((o) => o.id === id);
-    // 1) Confirmation — pas de spinner sur la ligne pendant ce temps
     const ok = await confirm({
       title: "Supprimer définitivement ?",
       message: opt
@@ -76,7 +75,6 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
     });
     if (!ok) return;
 
-    // 2) Maintenant on passe la ligne en mode "loading"
     setDeletingId(id);
     try {
       await deleteOption(kind, id);
@@ -145,10 +143,13 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
   const activeCount = options.filter((o) => o.active).length;
   const inactiveCount = options.length - activeCount;
 
-  return (
-    <View style={{ flex: 1 }}>
-      <Card style={{ margin: 12 }}>
-        <Text style={styles.cardTitle}>Ajouter une entrée</Text>
+  const ListHeader = (
+    <View>
+      {/* Add card */}
+      <Card style={styles.addCard}>
+        <View style={styles.addHeader}>
+          <Text style={styles.addTitle}>Ajouter une entrée</Text>
+        </View>
         <Input
           label="Libellé"
           value={newLabel}
@@ -156,6 +157,7 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
           placeholder="Ex : Ligne 42"
           onSubmitEditing={handleCreate}
           returnKeyType="done"
+          containerStyle={{ marginBottom: theme.spacing(2) }}
         />
         <Button
           label="+ Ajouter"
@@ -163,51 +165,116 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
           loading={creating}
           disabled={!newLabel.trim()}
         />
-        <View style={{ height: 8 }} />
-        <ImportCsvButton kind={kind} companyId={companyId} onImported={onChanged} />
+        <View style={{ height: theme.spacing(2) }} />
+        <ImportCsvButton
+          kind={kind}
+          companyId={companyId}
+          onImported={onChanged}
+        />
       </Card>
 
+      {/* Stats */}
       <View style={styles.statsRow}>
-        <Text style={styles.stats}>
-          {activeCount} active(s) • {inactiveCount} désactivée(s)
-        </Text>
+        <View style={styles.statPill}>
+          <View style={[styles.statDot, { backgroundColor: theme.colors.success }]} />
+          <Text style={styles.statTxt}>
+            {activeCount} active{activeCount > 1 ? "s" : ""}
+          </Text>
+        </View>
+        {inactiveCount > 0 ? (
+          <View style={styles.statPill}>
+            <View style={[styles.statDot, { backgroundColor: theme.colors.textMuted }]} />
+            <Text style={styles.statTxt}>
+              {inactiveCount} désactivée{inactiveCount > 1 ? "s" : ""}
+            </Text>
+          </View>
+        ) : null}
       </View>
+    </View>
+  );
 
-      {sorted.length === 0 ? (
-        <EmptyState title="Aucune entrée" subtitle="Ajoutez-en une ci-dessus." />
-      ) : (
-        <FlatList<CompanyOption>
-          data={sorted}
-          keyExtractor={(it: CompanyOption) => it.id}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          renderItem={({ item, index }: { item: CompanyOption; index: number }) => (
-            <OptionRowItem
-              option={item}
-              isFirst={index === 0}
-              isLast={index === sorted.length - 1}
-              deleting={deletingId === item.id}
-              onRename={handleRename}
-              onToggleActive={handleToggleActive}
-              onDelete={handleDelete}
-              onMoveUp={handleMoveUp}
-              onMoveDown={handleMoveDown}
-            />
-          )}
+  if (sorted.length === 0) {
+    return (
+      <View style={{ flex: 1 }}>
+        {ListHeader}
+        <EmptyState
+          title="Aucune entrée"
+          subtitle="Ajoutez votre première entrée ci-dessus."
+          icon="📝"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <FlatList<CompanyOption>
+      style={styles.list}
+      data={sorted}
+      keyExtractor={(it: CompanyOption) => it.id}
+      ListHeaderComponent={ListHeader}
+      renderItem={({ item, index }: { item: CompanyOption; index: number }) => (
+        <OptionRowItem
+          option={item}
+          isFirst={index === 0}
+          isLast={index === sorted.length - 1}
+          deleting={deletingId === item.id}
+          onRename={handleRename}
+          onToggleActive={handleToggleActive}
+          onDelete={handleDelete}
+          onMoveUp={handleMoveUp}
+          onMoveDown={handleMoveDown}
         />
       )}
-    </View>
+      contentContainerStyle={styles.listContent}
+      keyboardShouldPersistTaps="handled"
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  cardTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: theme.colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 8,
+  list: {
+    flex: 1,
   },
-  statsRow: { paddingHorizontal: 16, paddingBottom: 8 },
-  stats: { fontSize: 12, color: theme.colors.textMuted },
+  listContent: {
+    paddingBottom: 80,
+  },
+
+  addCard: {
+    marginHorizontal: theme.spacing(4),
+    marginBottom: theme.spacing(3),
+  },
+  addHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing(3),
+  },
+  addTitle: {
+    fontSize: theme.font.size.sm,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+
+  statsRow: {
+    flexDirection: "row",
+    paddingHorizontal: theme.spacing(4),
+    gap: theme.spacing(3),
+    marginBottom: theme.spacing(3),
+  },
+  statPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statTxt: {
+    fontSize: theme.font.size.sm,
+    color: theme.colors.textMuted,
+    fontWeight: theme.font.weight.medium,
+  },
 });
