@@ -667,3 +667,93 @@ export async function applyPhaseChange(opts: PhaseChangeOptions): Promise<void> 
     await recomputePDCAStatus(pdcaId);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Export complet avec détails (jointures profil + PDCA + action)
+// ---------------------------------------------------------------------------
+
+export interface HistoryEntryFull extends HistoryEntry {
+  user_name: string | null;
+  user_email: string | null;
+  pdca_subject: string | null;
+  action_text: string | null;
+}
+
+export async function listHistoryFull(limit = 5000): Promise<HistoryEntryFull[]> {
+  // 1. Charge tout l'historique
+  const { data, error } = await supabase
+    .from("pdca_history")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+
+  const rows = (data ?? []) as PDCAHistoryRow[];
+  if (rows.length === 0) return [];
+
+  // 2. Batch des utilisateurs
+  const userIds = Array.from(
+    new Set(rows.map((r) => r.user_id).filter((x): x is string => !!x)),
+  );
+  const userMap = new Map<string, { name: string; email: string }>();
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .in("id", userIds);
+    for (const p of (profiles ?? []) as Array<{
+      id: string;
+      full_name: string;
+      email: string;
+    }>) {
+      userMap.set(p.id, { name: p.full_name, email: p.email });
+    }
+  }
+
+  // 3. Batch des PDCA
+  const pdcaIds = Array.from(
+    new Set(rows.map((r) => r.pdca_id).filter((x): x is string => !!x)),
+  );
+  const pdcaMap = new Map<string, { reference: string; subject: string }>();
+  if (pdcaIds.length > 0) {
+    const { data: pdcas } = await supabase
+      .from("pdca")
+      .select("id, reference, subject")
+      .in("id", pdcaIds);
+    for (const p of (pdcas ?? []) as Array<{
+      id: string;
+      reference: string;
+      subject: string;
+    }>) {
+      pdcaMap.set(p.id, { reference: p.reference, subject: p.subject });
+    }
+  }
+
+  // 4. Batch des actions
+  const actionIds = Array.from(
+    new Set(rows.map((r) => r.action_id).filter((x): x is string => !!x)),
+  );
+  const actionMap = new Map<string, string>();
+  if (actionIds.length > 0) {
+    const { data: actions } = await supabase
+      .from("pdca_actions")
+      .select("id, action")
+      .in("id", actionIds);
+    for (const a of (actions ?? []) as Array<{ id: string; action: string }>) {
+      actionMap.set(a.id, a.action);
+    }
+  }
+
+  // 5. Compose
+  return rows.map((r) => {
+    const pdca = r.pdca_id ? pdcaMap.get(r.pdca_id) : undefined;
+    return {
+      ...r,
+      pdca_reference: pdca?.reference ?? null,
+      user_name: r.user_id ? userMap.get(r.user_id)?.name ?? null : null,
+      user_email: r.user_id ? userMap.get(r.user_id)?.email ?? null : null,
+      pdca_subject: pdca?.subject ?? null,
+      action_text: r.action_id ? actionMap.get(r.action_id) ?? null : null,
+    };
+  });
+}

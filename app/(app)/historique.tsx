@@ -9,9 +9,16 @@ import {
   View,
 } from "react-native";
 import { Card } from "@/components/Card";
-import { ExportButton } from "@/components/ExportButton";
+import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
-import { listHistory, HistoryEntry } from "@/services/pdcaService";
+import { ExportButton } from "@/components/ExportButton";
+import {
+  listHistory,
+  listHistoryFull,
+  HistoryEntry,
+} from "@/services/pdcaService";
+import { useUI } from "@/ui/UIProvider";
+import { exportCsv } from "@/services/exportService";
 import { theme } from "@/theme";
 
 const EVENT_LABELS: Record<string, string> = {
@@ -59,11 +66,13 @@ function fmt(iso: string): string {
 }
 
 export default function HistoriqueScreen() {
+  const { toast, alert } = useUI();
   const [items, setItems] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("ALL");
+  const [exportingFull, setExportingFull] = useState(false);
 
   const load = async () => {
     try {
@@ -87,18 +96,71 @@ export default function HistoriqueScreen() {
     return items.filter((h) => h.event_type === filter);
   }, [items, filter]);
 
+  // ── Export complet avec détails ────────────────────────
+  const handleExportFull = async () => {
+    try {
+      setExportingFull(true);
+      const full = await listHistoryFull(5000);
+      if (full.length === 0) {
+        toast.info("Aucune donnée à exporter");
+        return;
+      }
+      await exportCsv({
+        filename: "historique-complet",
+        headers: [
+          "ID",
+          "Date ISO",
+          "Date",
+          "Type (code)",
+          "Type (libellé)",
+          "Ancienne valeur",
+          "Nouvelle valeur",
+          "Commentaire",
+          "PDCA référence",
+          "PDCA sujet",
+          "Action",
+          "Utilisateur nom",
+          "Utilisateur email",
+        ],
+        rows: full.map((h) => [
+          h.id,
+          h.created_at,
+          fmt(h.created_at),
+          h.event_type,
+          EVENT_LABELS[h.event_type] ?? h.event_type,
+          h.old_value ?? "",
+          h.new_value ?? "",
+          h.comment ?? "",
+          h.pdca_reference ?? "",
+          h.pdca_subject ?? "",
+          h.action_text ?? "",
+          h.user_name ?? "",
+          h.user_email ?? "",
+        ]),
+      });
+      toast.success(`Export complet : ${full.length} événement(s)`);
+    } catch (e) {
+      alert({
+        title: "Erreur d'export",
+        message: e instanceof Error ? e.message : "Erreur",
+      });
+    } finally {
+      setExportingFull(false);
+    }
+  };
+
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
 
   return (
     <View style={styles.container}>
-      {/* ── Header ───────────────────────────────── */}
       <View style={styles.header}>
         <Text style={styles.title}>Historique</Text>
-        <Text style={styles.sub}>{filtered.length} événement(s)</Text>
+        <Text style={styles.sub}>
+          {filtered.length} / {items.length} événement(s)
+        </Text>
       </View>
 
-      {/* ── Filtres ──────────────────────────────── */}
       <View style={styles.filtersWrap}>
         <ScrollView
           horizontal
@@ -122,10 +184,10 @@ export default function HistoriqueScreen() {
         </ScrollView>
       </View>
 
-      {/* ── Export ───────────────────────────────── */}
       <View style={styles.exportWrap}>
         <ExportButton
-          filename="historique"
+          label="📊 Exporter la vue (6 colonnes)"
+          filename="historique-vue"
           headers={[
             "Date",
             "Type",
@@ -145,9 +207,19 @@ export default function HistoriqueScreen() {
             ])
           }
         />
+        <View style={{ height: theme.spacing(2) }} />
+        <Button
+          label="📥 Exporter tout (13 colonnes)"
+          variant="secondary"
+          onPress={handleExportFull}
+          loading={exportingFull}
+        />
+        <Text style={styles.exportHint}>
+          "Vue" = filtre actuel, format compact · "Tout" = toutes les lignes +
+          utilisateur, PDCA, action
+        </Text>
       </View>
 
-      {/* ── Liste ────────────────────────────────── */}
       {filtered.length === 0 ? (
         <EmptyState
           title="Aucun événement"
@@ -218,7 +290,6 @@ export default function HistoriqueScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.bg },
-
   header: {
     paddingHorizontal: theme.spacing(4),
     paddingTop: theme.spacing(4),
@@ -234,12 +305,9 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing(1),
     fontSize: theme.font.size.base,
   },
-
-  // Filtres : hauteur fixe, padding vertical pour ne pas clipper
   filtersWrap: {
     height: 56,
     justifyContent: "center",
-    backgroundColor: theme.colors.bg,
   },
   filtersContent: {
     paddingHorizontal: theme.spacing(4),
@@ -266,17 +334,21 @@ const styles = StyleSheet.create({
     fontWeight: theme.font.weight.semibold,
   },
   chipTxtActive: { color: "#fff" },
-
   exportWrap: {
     paddingHorizontal: theme.spacing(4),
     paddingBottom: theme.spacing(3),
   },
-
+  exportHint: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(2),
+    fontStyle: "italic",
+    textAlign: "center",
+  },
   listContent: {
     paddingHorizontal: theme.spacing(4),
     paddingBottom: 60,
   },
-
   eventHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
