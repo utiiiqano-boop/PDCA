@@ -21,6 +21,13 @@ function rateColor(rate: number): string {
   return theme.colors.danger;
 }
 
+function rateTone(rate: number): "success" | "primary" | "warning" | "danger" {
+  if (rate >= 80) return "success";
+  if (rate >= 50) return "primary";
+  if (rate >= 20) return "warning";
+  return "danger";
+}
+
 export default function PilotesScreen() {
   const [items, setItems] = useState<PilotSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,22 +62,84 @@ export default function PilotesScreen() {
 
   const totalActions = items.reduce((s, p) => s + p.total_actions, 0);
   const totalCompleted = items.reduce((s, p) => s + p.completed_actions, 0);
+  const totalOverdue = items.reduce((s, p) => s + p.overdue_actions, 0);
   const globalRate =
     totalActions > 0 ? Math.round((totalCompleted / totalActions) * 100) : 0;
 
+  const ListHeader = (
+    <View>
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        <StatPill
+          icon="👥"
+          label="Pilotes"
+          value={items.length}
+          color={theme.colors.primary}
+        />
+        <StatPill
+          icon="📋"
+          label="Actions"
+          value={totalActions}
+          color={theme.colors.info}
+        />
+        <StatPill
+          icon="✓"
+          label="Terminées"
+          value={totalCompleted}
+          color={theme.colors.success}
+        />
+        <StatPill
+          icon="⚠"
+          label="En retard"
+          value={totalOverdue}
+          color={theme.colors.danger}
+        />
+      </View>
+
+      {/* Global rate */}
+      <Card style={styles.globalCard}>
+        <View style={styles.globalHeader}>
+          <Text style={styles.globalLabel}>Taux de réalisation global</Text>
+          <Text style={[styles.globalPct, { color: rateColor(globalRate) }]}>
+            {globalRate}%
+          </Text>
+        </View>
+        <ProgressBar
+          value={globalRate}
+          color={rateColor(globalRate)}
+          label=""
+          showLabel={false}
+        />
+      </Card>
+    </View>
+  );
+
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+    <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.title}>Pilotes</Text>
         <Text style={styles.sub}>
-          {items.length} pilote(s) • {totalActions} action(s) • {globalRate}% réalisé
+          Vue d'ensemble par responsable d'action
         </Text>
       </View>
 
-      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+      {/* Export */}
+      <View style={styles.exportWrap}>
         <ExportButton
+          label="📊 Exporter la vue (pilotes)"
           filename="pilotes"
-          headers={["Pilote","Nb PDCA","Actions totales","Terminées","En cours","Ouvertes","En retard","Annulées","Taux réalisation %"]}
+          headers={[
+            "Pilote",
+            "Nb PDCA",
+            "Actions totales",
+            "Terminées",
+            "En cours",
+            "Ouvertes",
+            "En retard",
+            "Annulées",
+            "Taux réalisation %",
+          ]}
           rows={() =>
             items.map((p) => [
               p.pilot_name,
@@ -87,16 +156,19 @@ export default function PilotesScreen() {
         />
       </View>
 
+      {/* List */}
       {items.length === 0 ? (
         <EmptyState
           title="Aucun pilote"
           subtitle="Créez un PDCA avec une action pour faire apparaître les pilotes ici."
+          icon="👤"
         />
       ) : (
         <FlatList<PilotSummary>
-          contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
+          contentContainerStyle={styles.listContent}
           data={items}
           keyExtractor={(it: PilotSummary) => it.key}
+          ListHeaderComponent={ListHeader}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -109,6 +181,7 @@ export default function PilotesScreen() {
           }
           renderItem={({ item }: { item: PilotSummary }) => (
             <Card>
+              {/* Head: avatar + nom + meta */}
               <View style={styles.pilotHead}>
                 <View
                   style={[
@@ -116,31 +189,70 @@ export default function PilotesScreen() {
                     { backgroundColor: rateColor(item.completion_rate) },
                   ]}
                 >
-                  <Text style={styles.avatarText}>
+                  <Text style={styles.avatarTxt}>
                     {item.pilot_name.charAt(0).toUpperCase()}
                   </Text>
                 </View>
-                <View style={{ flex: 1 }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.pilotName} numberOfLines={2}>
                     {item.pilot_name}
                   </Text>
-                  <Text style={styles.pilotMeta}>
-                    {item.pdca_ids.length} PDCA • {item.total_actions} action(s)
-                  </Text>
+                  <View style={styles.metaRow}>
+                    <Badge
+                      label={`${item.pdca_ids.length} PDCA`}
+                      tone="primary"
+                    />
+                    <Badge
+                      label={`${item.total_actions} action${item.total_actions > 1 ? "s" : ""}`}
+                      tone="neutral"
+                    />
+                  </View>
                 </View>
               </View>
 
-              <ProgressBar
-                value={item.completion_rate}
-                color={rateColor(item.completion_rate)}
-                label="Taux de réalisation"
-              />
+              {/* Progress */}
+              <View style={styles.progressWrap}>
+                <View style={styles.progressHeader}>
+                  <Text style={styles.progressLabel}>Taux de réalisation</Text>
+                  <Text
+                    style={[
+                      styles.progressPct,
+                      { color: rateColor(item.completion_rate) },
+                    ]}
+                  >
+                    {item.completion_rate}%
+                  </Text>
+                </View>
+                <ProgressBar
+                  value={item.completion_rate}
+                  color={rateColor(item.completion_rate)}
+                  label=""
+                  showLabel={false}
+                />
+              </View>
 
+              {/* Metrics grid */}
               <View style={styles.metrics}>
-                <Metric n={item.completed_actions} l="Terminées" color={theme.colors.success} />
-                <Metric n={item.in_progress_actions} l="En cours" color={theme.colors.warning} />
-                <Metric n={item.open_actions} l="Ouvertes" color={theme.colors.info} />
-                <Metric n={item.overdue_actions} l="En retard" color={theme.colors.danger} />
+                <Metric
+                  n={item.completed_actions}
+                  l="Terminées"
+                  color={theme.colors.success}
+                />
+                <Metric
+                  n={item.in_progress_actions}
+                  l="En cours"
+                  color={theme.colors.warning}
+                />
+                <Metric
+                  n={item.open_actions}
+                  l="Ouvertes"
+                  color={theme.colors.info}
+                />
+                <Metric
+                  n={item.overdue_actions}
+                  l="Retard"
+                  color={theme.colors.danger}
+                />
               </View>
             </Card>
           )}
@@ -150,7 +262,35 @@ export default function PilotesScreen() {
   );
 }
 
-function Metric({ n, l, color }: { n: number; l: string; color?: string }) {
+function StatPill({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: string;
+  label: string;
+  value: number;
+  color: string;
+}) {
+  return (
+    <View style={styles.statPill}>
+      <Text style={styles.statIcon}>{icon}</Text>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+function Metric({
+  n,
+  l,
+  color,
+}: {
+  n: number;
+  l: string;
+  color?: string;
+}) {
   return (
     <View style={styles.metric}>
       <Text style={[styles.metricN, color && { color }]}>{n}</Text>
@@ -159,37 +299,186 @@ function Metric({ n, l, color }: { n: number; l: string; color?: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  header: { padding: 16, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "800", color: theme.colors.text },
-  sub: { color: theme.colors.textMuted, marginTop: 4 },
+function Badge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "primary" | "neutral";
+}) {
+  const map = {
+    primary: { fg: theme.colors.primary, bg: theme.colors.primarySoft },
+    neutral: { fg: theme.colors.textSecondary, bg: theme.colors.neutralSoft },
+  };
+  const c = map[tone];
+  return (
+    <View style={[styles.badge, { backgroundColor: c.bg }]}>
+      <Text style={[styles.badgeTxt, { color: c.fg }]}>{label}</Text>
+    </View>
+  );
+}
 
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.bg },
+
+  // ── Header ────────────────────────────────────
+  header: {
+    paddingHorizontal: theme.spacing(4),
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(3),
+  },
+  title: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.text,
+  },
+  sub: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+  },
+  exportWrap: {
+    paddingHorizontal: theme.spacing(4),
+    marginBottom: theme.spacing(3),
+  },
+
+  // ── Stats ─────────────────────────────────────
+  statsRow: {
+    flexDirection: "row",
+    gap: theme.spacing(2),
+    marginBottom: theme.spacing(4),
+    flexWrap: "wrap",
+  },
+  statPill: {
+    flex: 1,
+    minWidth: 80,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+    borderRadius: theme.radius.md,
+    paddingVertical: theme.spacing(2),
+    alignItems: "center",
+  },
+  statIcon: { fontSize: 16, marginBottom: 4 },
+  statValue: {
+    fontSize: theme.font.size.lg,
+    fontWeight: theme.font.weight.black,
+  },
+  statLabel: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    marginTop: 1,
+    fontWeight: theme.font.weight.medium,
+  },
+
+  // ── Global card ───────────────────────────────
+  globalCard: {
+    marginBottom: theme.spacing(4),
+  },
+  globalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: theme.spacing(3),
+  },
+  globalLabel: {
+    fontSize: theme.font.size.sm,
+    fontWeight: theme.font.weight.semibold,
+    color: theme.colors.textSecondary,
+  },
+  globalPct: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
+  },
+
+  // ── List ──────────────────────────────────────
+  listContent: {
+    paddingHorizontal: theme.spacing(4),
+    paddingBottom: 60,
+  },
+
+  // ── Card pilote ───────────────────────────────
   pilotHead: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
+    gap: theme.spacing(3),
+    marginBottom: theme.spacing(4),
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#fff", fontWeight: "800", fontSize: 20 },
-  pilotName: { fontSize: 15, fontWeight: "800", color: theme.colors.text },
-  pilotMeta: { fontSize: 12, color: theme.colors.textMuted, marginTop: 2 },
+  avatarTxt: {
+    color: "#fff",
+    fontWeight: theme.font.weight.black,
+    fontSize: theme.font.size.xl,
+  },
+  pilotName: {
+    fontSize: theme.font.size.md,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.text,
+  },
+  metaRow: {
+    flexDirection: "row",
+    gap: theme.spacing(1),
+    marginTop: theme.spacing(1),
+    flexWrap: "wrap",
+  },
+  badge: {
+    paddingHorizontal: theme.spacing(2),
+    paddingVertical: 3,
+    borderRadius: theme.radius.pill,
+  },
+  badgeTxt: {
+    fontSize: 10,
+    fontWeight: theme.font.weight.bold,
+    letterSpacing: 0.3,
+  },
 
+  // ── Progress ──────────────────────────────────
+  progressWrap: {
+    marginBottom: theme.spacing(4),
+  },
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: theme.spacing(2),
+  },
+  progressLabel: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.textMuted,
+    fontWeight: theme.font.weight.semibold,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  progressPct: {
+    fontSize: theme.font.size.lg,
+    fontWeight: theme.font.weight.black,
+  },
+
+  // ── Metrics ───────────────────────────────────
   metrics: {
     flexDirection: "row",
-    marginTop: 12,
-    paddingTop: 12,
+    paddingTop: theme.spacing(3),
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    gap: 8,
+    borderTopColor: theme.colors.divider,
+    gap: theme.spacing(2),
   },
   metric: { flex: 1, alignItems: "center" },
-  metricN: { fontSize: 18, fontWeight: "800", color: theme.colors.text },
-  metricL: { fontSize: 11, color: theme.colors.textMuted, textAlign: "center" },
+  metricN: {
+    fontSize: theme.font.size.lg,
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.text,
+  },
+  metricL: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+    marginTop: 2,
+    fontWeight: theme.font.weight.medium,
+  },
 });
