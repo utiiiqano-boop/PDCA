@@ -108,6 +108,7 @@ const fr = {
     adminHint: "Peut configurer l'entreprise et gérer les utilisateurs",
   },
   nav: {
+    industrialManagement: "Gestion industrielle",
     pdca: "PDCA",
     department: "Département",
     dashboard: "Tableau de bord",
@@ -619,6 +620,11 @@ const fr = {
     actionCancelledToast: "Action annulée",
   },
 
+  placeholder: {
+    feature: "Fonctionnalité",
+    phase3: "Disponible en Phase 3.",
+  },
+
   language: {
     select: "Langue",
     french: "Français",
@@ -726,6 +732,7 @@ const en: typeof fr = {
     adminHint: "Can configure the company and manage users",
   },
   nav: {
+    industrialManagement: "Industrial management",
     pdca: "PDCA",
     department: "Department",
     dashboard: "Dashboard",
@@ -1234,6 +1241,11 @@ const en: typeof fr = {
     actionCancelledToast: "Action cancelled",
   },
 
+  placeholder: {
+    feature: "Feature",
+    phase3: "Available in Phase 3.",
+  },
+
   language: {
     select: "Language",
     french: "Français",
@@ -1341,6 +1353,7 @@ const ar: typeof fr = {
     adminHint: "يمكنه إعداد الشركة وإدارة المستخدمين",
   },
   nav: {
+    industrialManagement: "الإدارة الصناعية",
     pdca: "PDCA",
     department: "القسم",
     dashboard: "لوحة التحكم",
@@ -1847,6 +1860,11 @@ const ar: typeof fr = {
     pdcaCancelled: "تم إلغاء PDCA",
     actionUpdated: "تم تحديث الإجراء",
     actionCancelledToast: "تم إلغاء الإجراء",
+  },
+
+  placeholder: {
+    feature: "ميزة",
+    phase3: "متاحة في المرحلة 3.",
   },
 
   language: {

@@ -4,6 +4,7 @@ import { Card } from "@/components/Card";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { PDCAProgressBar } from "@/components/PDCAProgressBar";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 import type { PDCAPhase, PDCAActionRow, Priority } from "@/types/database";
 
 interface Props {
@@ -16,33 +17,34 @@ interface Props {
 }
 
 export function ActionCard({ index, action, priority, onEdit, onDelete, onPhaseChange }: Props) {
+  const { t: tr } = useTranslation();
   return (
     <Card>
       <View style={styles.head}>
-        <Text style={styles.title}>Action {index + 1}</Text>
+        <Text style={styles.title}>{tr("pdcaForm.actionLabel")} {index + 1}</Text>
         <StatusBadge status={action.status} />
       </View>
 
-      <Text style={styles.label}>Action</Text>
+      <Text style={styles.label}>{tr("pdcaForm.actionLabel")}</Text>
       <Text style={styles.value}>{action.action}</Text>
 
-      <Text style={styles.label}>Pilote</Text>
+      <Text style={styles.label}>{tr("pdcaDetail.pilot")}</Text>
       <Text style={styles.value}>{action.pilot_name}</Text>
 
       <View style={{ flexDirection: "row", gap: 16, marginTop: 8 }}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.label}>Ouverture</Text>
+          <Text style={styles.label}>{tr("pdcaDetail.openingDate")}</Text>
           <Text style={styles.value}>{action.opening_date}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.label}>Échéance</Text>
+          <Text style={styles.label}>{tr("pdcaDetail.dueDate")}</Text>
           <Text style={styles.value}>{action.due_date ?? "—"}</Text>
         </View>
       </View>
 
       {priority ? (
         <View style={{ marginTop: 8 }}>
-          <Text style={styles.label}>Priorité</Text>
+          <Text style={styles.label}>{tr("pdcaDetail.priority")}</Text>
           <PriorityBadge priority={priority} />
         </View>
       ) : null}
@@ -55,12 +57,12 @@ export function ActionCard({ index, action, priority, onEdit, onDelete, onPhaseC
         <View style={styles.row}>
           {onEdit && (
             <Pressable onPress={onEdit} style={[styles.btn, styles.btnGhost]}>
-              <Text style={styles.btnGhostTxt}>Modifier</Text>
+              <Text style={styles.btnGhostTxt}>{tr("common.edit")}</Text>
             </Pressable>
           )}
           {onDelete && (
             <Pressable onPress={onDelete} style={[styles.btn, styles.btnDanger]}>
-              <Text style={styles.btnDangerTxt}>Supprimer</Text>
+              <Text style={styles.btnDangerTxt}>{tr("common.delete")}</Text>
             </Pressable>
           )}
         </View>

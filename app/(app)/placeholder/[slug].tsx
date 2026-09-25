@@ -2,22 +2,25 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
-const TITLES: Record<string, string> = {
-  graphiques: "Graphiques",
-  rapport: "Rapport hebdomadaire",
-  lessons: "Lessons Learned",
-  tour: "Tour Usine",
+const TITLE_KEYS: Record<string, string> = {
+  graphiques: "nav.charts",
+  rapport: "nav.weeklyReport",
+  lessons: "nav.lessons",
+  tour: "nav.factoryTour",
 };
 
 export default function Placeholder() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { t: tr } = useTranslation();
+  const titleKey = TITLE_KEYS[slug ?? ""];
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>
-        {TITLES[slug ?? ""] ?? "Fonctionnalité"}
+        {titleKey ? tr(titleKey) : tr("placeholder.feature")}
       </Text>
-      <Text style={styles.sub}>Disponible en Phase 3.</Text>
+      <Text style={styles.sub}>{tr("placeholder.phase3")}</Text>
     </View>
   );
 }

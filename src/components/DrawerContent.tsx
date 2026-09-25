@@ -116,7 +116,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>PDCA</Text>
         </View>
-        <Text style={styles.headerSub}>Gestion industrielle</Text>
+        <Text style={styles.headerSub}>{t("nav.industrialManagement")}</Text>
       </View>
 
       <ScrollView
@@ -153,7 +153,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.footerName} numberOfLines={1}>
-            {fullName || "Utilisateur"}
+            {fullName || t("pdcaDetailScreen.defaultUser")}
           </Text>
           <Text style={styles.footerRole} numberOfLines={1}>
             {isAdmin ? t("role.admin") : role || t("role.member")}
