@@ -311,6 +311,7 @@ function LessonForm({
   onClose: () => void;
   onSubmit: (payload: Omit<LessonInsert, "created_by">) => Promise<void>;
 }) {
+  const { alert } = useUI();
   const [title, setTitle] = useState("");
   const [pdcaRef, setPdcaRef] = useState<string | null>(null);
   const [problem, setProblem] = useState("");
@@ -343,7 +344,7 @@ function LessonForm({
 
   const submit = async () => {
     if (!title.trim()) {
-      Alert.alert("Validation", "Titre obligatoire.");
+      alert({ title: "Validation", message: "Titre obligatoire." });
       return;
     }
     setBusy(true);
