@@ -28,15 +28,21 @@ import {
   listTours,
 } from "@/services/tourService";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 const STATUSES = ["PLANNED", "IN_PROGRESS", "DONE", "CANCELLED"] as const;
 
-const STATUS_LABELS: Record<string, string> = {
-  PLANNED: "Planifié",
-  IN_PROGRESS: "En cours",
-  DONE: "Terminé",
-  CANCELLED: "Annulé",
+const STATUS_KEYS: Record<string, string> = {
+  PLANNED: "planned",
+  IN_PROGRESS: "inProgress",
+  DONE: "done",
+  CANCELLED: "cancelled",
 };
+
+function statusLabel(tr: (k: string) => string, s: string): string {
+  const k = STATUS_KEYS[s];
+  return k ? tr("tourUsineScreen.status." + k) : s;
+}
 
 const STATUS_COLORS: Record<string, { fg: string; bg: string }> = {
   PLANNED:     { fg: theme.colors.info,    bg: theme.colors.infoSoft },
@@ -62,6 +68,7 @@ export default function TourUsineScreen() {
   // ── 1. ALL HOOKS FIRST ────────────────────────────────
   const { session } = useAuth();
   const { toast, confirm, alert } = useUI();
+  const { t: tr } = useTranslation();
 
   const [items, setItems] = useState<FactoryTour[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +82,7 @@ export default function TourUsineScreen() {
       setError(null);
       setItems(await listTours());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   };
 
@@ -115,16 +122,16 @@ export default function TourUsineScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Tour Usine</Text>
+        <Text style={styles.title}>{tr("tourUsineScreen.title")}</Text>
         <Text style={styles.sub}>
-          Visites terrain et rondes de supervision
+          {tr("tourUsineScreen.subtitle")}
         </Text>
       </View>
 
       {/* Add */}
       <View style={styles.addWrap}>
         <Button
-          label="+ Nouvelle tournée"
+          label={tr("tourUsineScreen.addBtn")}
           onPress={() => setShowForm(true)}
         />
       </View>
@@ -132,15 +139,15 @@ export default function TourUsineScreen() {
       {/* Export */}
       <View style={styles.exportWrap}>
         <ExportButton
-          label="📊 Exporter la vue (5 colonnes)"
+          label={tr("tourUsineScreen.exportBtn")}
           filename="tour-usine"
-          headers={["Titre", "Lieu", "Date", "Statut", "Description"]}
+          headers={[tr("tourUsineScreen.hTitle"), tr("tourUsineScreen.hLocation"), tr("tourUsineScreen.hDate"), tr("tourUsineScreen.hStatus"), tr("tourUsineScreen.hDescription")]}
           rows={() =>
             filtered.map((r) => [
               r.title,
               r.location ?? "",
               r.tour_date ?? "",
-              STATUS_LABELS[r.status] ?? r.status,
+              statusLabel(tr, r.status),
               r.description ?? "",
             ])
           }
@@ -153,14 +160,14 @@ export default function TourUsineScreen() {
         onChange={setFilters}
         showPriority={false}
         showStatus={false}
-        placeholder="Rechercher une tournée…"
+        placeholder={tr("tourUsineScreen.searchPh")}
       />
 
       {/* List */}
       {filtered.length === 0 ? (
         <EmptyState
-          title="Aucune tournée"
-          subtitle="Planifiez votre première visite usine."
+          title={tr("tourUsineScreen.empty")}
+          subtitle={tr("tourUsineScreen.emptySub")}
           icon="🏭"
         />
       ) : (
@@ -177,7 +184,7 @@ export default function TourUsineScreen() {
                   ]}
                 />
                 <Text style={styles.statTxt}>
-                  {plannedCount} planifiée{plannedCount > 1 ? "s" : ""}
+                  {plannedCount} {plannedCount > 1 ? tr("tourUsineScreen.plannedMany") : tr("tourUsineScreen.plannedOne")}
                 </Text>
               </View>
               <View style={styles.statPill}>
@@ -188,7 +195,7 @@ export default function TourUsineScreen() {
                   ]}
                 />
                 <Text style={styles.statTxt}>
-                  {doneCount} terminée{doneCount > 1 ? "s" : ""}
+                  {doneCount} {doneCount > 1 ? tr("tourUsineScreen.doneMany") : tr("tourUsineScreen.doneOne")}
                 </Text>
               </View>
             </View>
@@ -220,7 +227,7 @@ export default function TourUsineScreen() {
                     style={[styles.statusBadge, { backgroundColor: colors.bg }]}
                   >
                     <Text style={[styles.statusTxt, { color: colors.fg }]}>
-                      {STATUS_LABELS[item.status] ?? item.status}
+                      {statusLabel(tr, item.status)}
                     </Text>
                   </View>
                 </View>
@@ -236,12 +243,12 @@ export default function TourUsineScreen() {
                 <View style={styles.metaGrid}>
                   <MetaItem
                     icon="📍"
-                    label="Lieu"
+                    label={tr("tourUsineScreen.fieldLocation")}
                     value={item.location ?? "—"}
                   />
                   <MetaItem
                     icon="📅"
-                    label="Date"
+                    label={tr("tourUsineScreen.hDate")}
                     value={fmtDate(item.tour_date)}
                   />
                 </View>
@@ -249,31 +256,31 @@ export default function TourUsineScreen() {
                 {/* Footer */}
                 <View style={styles.cardFooter}>
                   <Text style={styles.createdTxt}>
-                    Créé le {fmtDate(item.created_at)}
+                    {tr("tourUsineScreen.created")} {fmtDate(item.created_at)}
                   </Text>
                   <Pressable
                     onPress={async () => {
                       const ok = await confirm({
-                        title: "Supprimer cette tournée ?",
-                        message: "Cette action est irréversible.",
-                        confirmLabel: "Supprimer",
+                        title: tr("tourUsineScreen.deleteConfirm"),
+                        message: tr("tourUsineScreen.deleteConfirmSub"),
+                        confirmLabel: tr("common.delete"),
                         destructive: true,
                       });
                       if (!ok) return;
                       try {
                         await deleteTour(item.id);
-                        toast.info("Tournée supprimée");
+                        toast.info(tr("tourUsineScreen.deleted"));
                         await load();
                       } catch (e) {
                         alert({
-                          title: "Erreur",
-                          message: e instanceof Error ? e.message : "Erreur",
+                          title: tr("common.error"),
+                          message: e instanceof Error ? e.message : tr("common.error"),
                         });
                       }
                     }}
                     style={styles.deleteBtn}
                   >
-                    <Text style={styles.deleteTxt}>Supprimer</Text>
+                    <Text style={styles.deleteTxt}>{tr("common.delete")}</Text>
                   </Pressable>
                 </View>
               </Card>
@@ -291,12 +298,12 @@ export default function TourUsineScreen() {
           try {
             await createTour({ ...payload, created_by: session.user.id });
             setShowForm(false);
-            toast.success("Tournée créée");
+            toast.success(tr("tourUsineScreen.created2"));
             await load();
           } catch (e) {
             alert({
-              title: "Erreur",
-              message: e instanceof Error ? e.message : "Erreur",
+              title: tr("common.error"),
+              message: e instanceof Error ? e.message : tr("common.error"),
             });
           }
         }}
@@ -337,6 +344,7 @@ function TourForm({
   onSubmit: (payload: Omit<TourInsert, "created_by">) => Promise<void>;
 }) {
   const { alert } = useUI();
+  const { t: tr } = useTranslation();
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
@@ -354,7 +362,7 @@ function TourForm({
 
   const submit = async () => {
     if (!title.trim()) {
-      alert({ title: "Validation", message: "Titre obligatoire." });
+      alert({ title: tr("tourUsineScreen.validationTitle"), message: tr("tourUsineScreen.titleRequired") });
       return;
     }
     setBusy(true);
@@ -379,48 +387,46 @@ function TourForm({
         contentContainerStyle={styles.modalBody}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.modalTitle}>Nouvelle tournée</Text>
+        <Text style={styles.modalTitle}>{tr("tourUsineScreen.modalTitle")}</Text>
         <Text style={styles.modalSub}>
-          Planifiez une visite terrain pour superviser le terrain
+          {tr("tourUsineScreen.modalSub")}
         </Text>
 
         <Input
-          label="Titre"
+          label={tr("tourUsineScreen.fieldTitle")}
           value={title}
           onChangeText={setTitle}
-          placeholder="Ex : Ronde 5S atelier nord"
+          placeholder={tr("tourUsineScreen.fieldTitlePh")}
           required
         />
         <Input
-          label="Lieu"
+          label={tr("tourUsineScreen.fieldLocation")}
           value={location}
           onChangeText={setLocation}
-          placeholder="Ex : Atelier A12"
+          placeholder={tr("tourUsineScreen.fieldLocationPh")}
         />
         <Input
-          label="Description"
+          label={tr("tourUsineScreen.fieldDescription")}
           value={description}
           onChangeText={setDescription}
           multiline
-          placeholder="Points à vérifier, participants, objectifs…"
+          placeholder={tr("tourUsineScreen.fieldDescriptionPh")}
         />
-        <DateField label="Date de la tournée" value={date} onChange={setDate} />
+        <DateField label={tr("tourUsineScreen.fieldDate")} value={date} onChange={setDate} />
         <Select
-          label="Statut"
-          value={STATUS_LABELS[status] ?? status}
-          options={STATUSES.map((s) => STATUS_LABELS[s] ?? s)}
+          label={tr("tourUsineScreen.fieldStatus")}
+          value={statusLabel(tr, status)}
+          options={STATUSES.map((s) => statusLabel(tr, s))}
           onChange={(v) => {
-            const key = Object.keys(STATUS_LABELS).find(
-              (k) => STATUS_LABELS[k] === v,
-            );
+            const key = STATUSES.find((s) => statusLabel(tr, s) === v);
             setStatus(key ?? "PLANNED");
           }}
         />
 
         <View style={{ height: theme.spacing(3) }} />
-        <Button label="Créer la tournée" onPress={submit} loading={busy} />
+        <Button label={tr("tourUsineScreen.submit")} onPress={submit} loading={busy} />
         <View style={{ height: theme.spacing(2) }} />
-        <Button label="Annuler" variant="secondary" onPress={onClose} />
+        <Button label={tr("common.cancel")} variant="secondary" onPress={onClose} />
       </ScrollView>
     </Modal>
   );

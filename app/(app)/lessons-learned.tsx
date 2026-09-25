@@ -29,6 +29,7 @@ import {
 } from "@/services/lessonsService";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 function fmtDate(iso: string): string {
   try {
@@ -46,6 +47,7 @@ export default function LessonsLearnedScreen() {
   // ── 1. ALL HOOKS FIRST ────────────────────────────────
   const { session } = useAuth();
   const { toast, confirm, alert } = useUI();
+  const { t: tr } = useTranslation();
   const { pdcaId: pdcaIdParam } = useLocalSearchParams<{ pdcaId?: string }>();
 
   const [items, setItems] = useState<LessonLearned[]>([]);
@@ -63,7 +65,7 @@ export default function LessonsLearnedScreen() {
       setItems(ll);
       setPdcas(ps);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   };
 
@@ -108,8 +110,7 @@ export default function LessonsLearnedScreen() {
             style={[styles.statDot, { backgroundColor: theme.colors.primary }]}
           />
           <Text style={styles.statTxt}>
-            {items.length} leçon{items.length > 1 ? "s" : ""} enregistrée
-            {items.length > 1 ? "s" : ""}
+            {items.length} {items.length > 1 ? tr("lessonsScreen.countMany") : tr("lessonsScreen.countOne")}
           </Text>
         </View>
       </View>
@@ -120,16 +121,16 @@ export default function LessonsLearnedScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Lessons Learned</Text>
+        <Text style={styles.title}>{tr("lessonsScreen.title")}</Text>
         <Text style={styles.sub}>
-          Retours d'expérience des PDCA clôturés
+          {tr("lessonsScreen.subtitle")}
         </Text>
       </View>
 
       {/* Add button */}
       <View style={styles.addWrap}>
         <Button
-          label="+ Nouvelle leçon"
+          label={tr("lessonsScreen.addBtn")}
           onPress={() => setShowForm(true)}
         />
       </View>
@@ -137,16 +138,16 @@ export default function LessonsLearnedScreen() {
       {/* Export */}
       <View style={styles.exportWrap}>
         <ExportButton
-          label="📊 Exporter la vue (7 colonnes)"
+          label={tr("lessonsScreen.exportBtn")}
           filename="lessons-learned"
           headers={[
-            "Titre",
-            "Problème",
-            "Cause",
-            "Solution",
-            "Résultat",
-            "Standardisation",
-            "Créé le",
+            tr("lessonsScreen.hTitle"),
+            tr("lessonsScreen.hProblem"),
+            tr("lessonsScreen.hCause"),
+            tr("lessonsScreen.hSolution"),
+            tr("lessonsScreen.hResult"),
+            tr("lessonsScreen.hStandardization"),
+            tr("lessonsScreen.hCreated"),
           ]}
           rows={() =>
             filtered.map((l) => [
@@ -168,14 +169,14 @@ export default function LessonsLearnedScreen() {
         onChange={setFilters}
         showPriority={false}
         showStatus={false}
-        placeholder="Rechercher une leçon…"
+        placeholder={tr("lessonsScreen.searchPh")}
       />
 
       {/* List */}
       {filtered.length === 0 ? (
         <EmptyState
-          title="Aucune leçon"
-          subtitle="Enregistrez vos retours d'expérience après chaque PDCA clôturé."
+          title={tr("lessonsScreen.empty")}
+          subtitle={tr("lessonsScreen.emptySub")}
           icon="💡"
         />
       ) : (
@@ -219,15 +220,15 @@ export default function LessonsLearnedScreen() {
 
                 {/* Content */}
                 {item.problem ? (
-                  <Block label="Problème" value={item.problem} />
+                  <Block label={tr("lessonsScreen.fieldProblem")} value={item.problem} />
                 ) : null}
-                {item.cause ? <Block label="Cause" value={item.cause} /> : null}
+                {item.cause ? <Block label={tr("lessonsScreen.fieldCause")} value={item.cause} /> : null}
                 {item.solution ? (
-                  <Block label="Solution" value={item.solution} />
+                  <Block label={tr("lessonsScreen.fieldSolution")} value={item.solution} />
                 ) : null}
-                {item.result ? <Block label="Résultat" value={item.result} /> : null}
+                {item.result ? <Block label={tr("lessonsScreen.fieldResult")} value={item.result} /> : null}
                 {item.standardization ? (
-                  <Block label="Standardisation" value={item.standardization} />
+                  <Block label={tr("lessonsScreen.fieldStandardization")} value={item.standardization} />
                 ) : null}
 
                 {/* Footer */}
@@ -236,26 +237,26 @@ export default function LessonsLearnedScreen() {
                   <Pressable
                     onPress={async () => {
                       const ok = await confirm({
-                        title: "Supprimer cette leçon ?",
-                        message: "Cette action est irréversible.",
-                        confirmLabel: "Supprimer",
+                        title: tr("lessonsScreen.deleteConfirm"),
+                        message: tr("lessonsScreen.deleteConfirmSub"),
+                        confirmLabel: tr("common.delete"),
                         destructive: true,
                       });
                       if (!ok) return;
                       try {
                         await deleteLesson(item.id);
-                        toast.info("Leçon supprimée");
+                        toast.info(tr("lessonsScreen.deleted"));
                         await load();
                       } catch (e) {
                         alert({
-                          title: "Erreur",
-                          message: e instanceof Error ? e.message : "Erreur",
+                          title: tr("common.error"),
+                          message: e instanceof Error ? e.message : tr("common.error"),
                         });
                       }
                     }}
                     style={styles.deleteBtn}
                   >
-                    <Text style={styles.deleteTxt}>Supprimer</Text>
+                    <Text style={styles.deleteTxt}>{tr("common.delete")}</Text>
                   </Pressable>
                 </View>
               </Card>
@@ -275,12 +276,12 @@ export default function LessonsLearnedScreen() {
           try {
             await createLesson({ ...payload, created_by: session.user.id });
             setShowForm(false);
-            toast.success("Leçon enregistrée");
+            toast.success(tr("lessonsScreen.created"));
             await load();
           } catch (e) {
             alert({
-              title: "Erreur",
-              message: e instanceof Error ? e.message : "Erreur",
+              title: tr("common.error"),
+              message: e instanceof Error ? e.message : tr("common.error"),
             });
           }
         }}
@@ -312,6 +313,7 @@ function LessonForm({
   onSubmit: (payload: Omit<LessonInsert, "created_by">) => Promise<void>;
 }) {
   const { alert } = useUI();
+  const { t: tr } = useTranslation();
   const [title, setTitle] = useState("");
   const [pdcaRef, setPdcaRef] = useState<string | null>(null);
   const [problem, setProblem] = useState("");
@@ -344,7 +346,7 @@ function LessonForm({
 
   const submit = async () => {
     if (!title.trim()) {
-      alert({ title: "Validation", message: "Titre obligatoire." });
+      alert({ title: tr("lessonsScreen.validationTitle"), message: tr("lessonsScreen.titleRequired") });
       return;
     }
     setBusy(true);
@@ -374,49 +376,49 @@ function LessonForm({
         contentContainerStyle={styles.modalBody}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.modalTitle}>Nouvelle leçon apprise</Text>
+        <Text style={styles.modalTitle}>{tr("lessonsScreen.modalTitle")}</Text>
         <Text style={styles.modalSub}>
-          Capturez ce qui a fonctionné (ou non) pour les prochains PDCA
+          {tr("lessonsScreen.modalSub")}
         </Text>
 
-        <Input label="Titre" value={title} onChangeText={setTitle} required />
+        <Input label={tr("lessonsScreen.fieldTitle")} value={title} onChangeText={setTitle} required />
         <Select
-          label="PDCA associé"
+          label={tr("lessonsScreen.fieldPdca")}
           value={pdcaRef}
           options={references}
           onChange={setPdcaRef}
-          placeholder="Aucun (facultatif)"
+          placeholder={tr("lessonsScreen.fieldPdcaNone")}
         />
         <Input
-          label="Problème"
+          label={tr("lessonsScreen.fieldProblem")}
           value={problem}
           onChangeText={setProblem}
           multiline
         />
-        <Input label="Cause" value={cause} onChangeText={setCause} multiline />
+        <Input label={tr("lessonsScreen.fieldCause")} value={cause} onChangeText={setCause} multiline />
         <Input
-          label="Solution"
+          label={tr("lessonsScreen.fieldSolution")}
           value={solution}
           onChangeText={setSolution}
           multiline
         />
         <Input
-          label="Résultat"
+          label={tr("lessonsScreen.fieldResult")}
           value={result}
           onChangeText={setResult}
           multiline
         />
         <Input
-          label="Standardisation"
+          label={tr("lessonsScreen.fieldStandardization")}
           value={standardization}
           onChangeText={setStandardization}
           multiline
         />
 
         <View style={{ height: theme.spacing(3) }} />
-        <Button label="Enregistrer" onPress={submit} loading={busy} />
+        <Button label={tr("lessonsScreen.save")} onPress={submit} loading={busy} />
         <View style={{ height: theme.spacing(2) }} />
-        <Button label="Annuler" variant="secondary" onPress={onClose} />
+        <Button label={tr("common.cancel")} variant="secondary" onPress={onClose} />
       </ScrollView>
     </Modal>
   );
