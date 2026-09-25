@@ -8,7 +8,7 @@ Deno.serve(async () => {
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !key) {
       return new Response(
-        JSON.stringify({ error: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" }),
+        JSON.stringify({ error: "Missing env" }),
         { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -18,44 +18,63 @@ Deno.serve(async () => {
     const today = new Date().toISOString().slice(0, 10);
     const { data: overdue, error } = await supabase
       .from("pdca_actions")
-      .select("id, pilot_name, action, due_date, pdca_id, company_id")
+      .select("id, pilot_id, pilot_name, action, due_date, pdca_id, company_id")
       .lt("due_date", today)
       .not("status", "in", "(COMPLETED,CANCELLED)");
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
+        status: 500, headers: { "Content-Type": "application/json" },
       });
     }
 
     if (!overdue || overdue.length === 0) {
       return new Response(JSON.stringify({ sent: 0, reason: "no overdue" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
+        status: 200, headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Group by (company_id + pilot_name) so each company is isolated
-    const byKey = new Map<string, typeof overdue>();
+    // Group by pilot_id (fallback to company_id + pilot_name string)
+    const byKey = new Map<string, { ids: string[]; count: number }>();
     for (const a of overdue) {
-      const k = `${a.company_id ?? "none"}::${a.pilot_name ?? "—"}`;
-      if (!byKey.has(k)) byKey.set(k, []);
-      byKey.get(k)!.push(a);
+      const key = a.pilot_id
+        ? `id:${a.pilot_id}`
+        : `name:${a.company_id}:${a.pilot_name || "—"}`;
+      const entry = byKey.get(key) ?? { ids: [], count: 0 };
+      entry.ids.push(a.id);
+      entry.count += 1;
+      byKey.set(key, entry);
     }
 
-    // Load all profiles with tokens, once
-    const { data: profiles, error: pErr } = await supabase
+    // Load profiles (by id)
+    const idsFromPilotId = [...byKey.keys()]
+      .filter((k) => k.startsWith("id:"))
+      .map((k) => k.slice(3));
+
+    const byPilotIdProfile = new Map<string, { full_name: string; role: string; company_id: string; token: string }>();
+    if (idsFromPilotId.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, role, company_id, expo_push_token")
+        .in("id", idsFromPilotId)
+        .not("expo_push_token", "is", null);
+      for (const p of (profs ?? []) as Array<{
+        id: string; full_name: string; role: string; company_id: string; expo_push_token: string;
+      }>) {
+        byPilotIdProfile.set(p.id, {
+          full_name: p.full_name,
+          role: p.role,
+          company_id: p.company_id,
+          token: p.expo_push_token,
+        });
+      }
+    }
+
+    // Load profiles (fallback by name)
+    const { data: allProfs } = await supabase
       .from("profiles")
-      .select("id, full_name, role, company_id, expo_push_token")
+      .select("full_name, role, company_id, expo_push_token")
       .not("expo_push_token", "is", null);
-
-    if (pErr) {
-      return new Response(JSON.stringify({ error: pErr.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
 
     const messages: Array<{
       to: string;
@@ -65,31 +84,44 @@ Deno.serve(async () => {
       data: Record<string, unknown>;
     }> = [];
 
-    for (const [key, actions] of byKey.entries()) {
-      const [companyId, pilotName] = key.split("::");
-
-      // Find profiles in the SAME COMPANY whose full_name OR role matches the pilot
-      const matches = (profiles ?? []).filter(
-        (p) =>
-          p.company_id === companyId &&
-          (p.full_name === pilotName || p.role === pilotName) &&
-          p.expo_push_token,
-      );
-
-      for (const p of matches) {
+    for (const [key, info] of byKey.entries()) {
+      if (key.startsWith("id:")) {
+        const pid = key.slice(3);
+        const prof = byPilotIdProfile.get(pid);
+        if (!prof) continue;
         messages.push({
-          to: p.expo_push_token,
+          to: prof.token,
           sound: "default",
           title: "Actions en retard",
-          body: `${actions.length} action(s) en retard vous sont assignées.`,
-          data: { type: "overdue", count: actions.length },
+          body: `${info.count} action(s) en retard vous sont assignées.`,
+          data: { type: "overdue", count: info.count },
         });
+      } else {
+        // Fallback: name + company match
+        const parts = key.split(":");
+        const companyId = parts[1];
+        const pilotName = parts.slice(2).join(":");
+        const matches = (allProfs ?? []).filter(
+          (p) =>
+            p.company_id === companyId &&
+            (p.full_name === pilotName || p.role === pilotName) &&
+            p.expo_push_token,
+        );
+        for (const p of matches) {
+          messages.push({
+            to: p.expo_push_token,
+            sound: "default",
+            title: "Actions en retard",
+            body: `${info.count} action(s) en retard vous sont assignées.`,
+            data: { type: "overdue", count: info.count },
+          });
+        }
       }
     }
 
     if (messages.length === 0) {
       return new Response(
-        JSON.stringify({ sent: 0, reason: "no token matched a pilot name" }),
+        JSON.stringify({ sent: 0, reason: "no matching recipient" }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }
@@ -108,8 +140,7 @@ Deno.serve(async () => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
+      status: 500, headers: { "Content-Type": "application/json" },
     });
   }
 });

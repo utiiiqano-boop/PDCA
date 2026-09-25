@@ -189,9 +189,10 @@ export async function createPDCA(
   const parentRow = pdca as PDCARow;
 
   // 4. Résout les pilot_id et insert les actions
+  // Phase 5.1 : resolve pilot_id
   const rows = await Promise.all(
     draft.actions.map(async (a) => {
-      const pilotId = await resolveId("company_pilots", a.pilot_name);
+      const pilotId = await resolvePilotId(a.pilot_name, companyId);
       return {
         pdca_id: parentRow.id,
         action: a.action,
@@ -756,4 +757,32 @@ export async function listHistoryFull(limit = 5000): Promise<HistoryEntryFull[]>
       action_text: r.action_id ? actionMap.get(r.action_id) ?? null : null,
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Phase 5.1 — resolvePilotId
+// ---------------------------------------------------------------------------
+
+/**
+ * Try to find a profile matching a pilot_name in the same company.
+ * Returns null if no unique match.
+ */
+export async function resolvePilotId(
+  pilotName: string | null | undefined,
+  companyId: string | null | undefined,
+): Promise<string | null> {
+  if (!pilotName || !companyId) return null;
+  const trimmed = pilotName.trim();
+  if (!trimmed || trimmed === "Autre") return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("full_name", trimmed)
+    .limit(2);
+  if (error) return null;
+  const rows = (data ?? []) as Array<{ id: string }>;
+  // Only match if unambiguous
+  return rows.length === 1 ? rows[0]!.id : null;
 }
