@@ -19,10 +19,19 @@ import { supabase } from "@/lib/supabase";
 import { getCompany, uploadCompanyLogo } from "@/services/companiesService";
 import { PILOTS } from "@/constants/options";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 export default function SignupScreen() {
   const { signUp, signOut } = useAuth();
   const { toast } = useUI();
+  const { t: tr } = useTranslation();
+
+  // Display-only translation for the DB sentinel "Autre"
+  const OTHER_SENTINEL = "Autre";
+  const otherLabel = tr("common.other");
+  const vToL = (v: string | null) => (v === OTHER_SENTINEL ? otherLabel : v);
+  const lToV = (l: string) => (l === otherLabel ? OTHER_SENTINEL : l);
+  const roleOptions = PILOTS.map((r) => (r === OTHER_SENTINEL ? otherLabel : r));
 
   const [companyName, setCompanyName] = useState("");
   const [logoUri, setLogoUri] = useState<string | null>(null);
@@ -40,7 +49,7 @@ export default function SignupScreen() {
   const pickLogo = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      toast.error("Permission refusée pour accéder aux photos.");
+      toast.error(tr("signup.permissionDenied"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -56,14 +65,14 @@ export default function SignupScreen() {
 
   const onSubmit = async () => {
     setErr(null);
-    const finalRole = role === "Autre" ? customRole.trim() : role;
+    const finalRole = role === OTHER_SENTINEL ? customRole.trim() : role;
 
-    if (!companyName.trim()) return setErr("Nom de l'entreprise requis.");
-    if (!finalRole) return setErr("Rôle requis.");
-    if (!fullName.trim()) return setErr("Nom et prénom requis.");
-    if (!email.trim()) return setErr("Email requis.");
-    if (password.length < 6) return setErr("Mot de passe : 6 caractères minimum.");
-    if (password !== passwordConfirm) return setErr("Les mots de passe ne correspondent pas.");
+    if (!companyName.trim()) return setErr(tr("signup.errCompanyName"));
+    if (!finalRole) return setErr(tr("signup.errRole"));
+    if (!fullName.trim()) return setErr(tr("signup.errFullName"));
+    if (!email.trim()) return setErr(tr("signup.errEmail"));
+    if (password.length < 6) return setErr(tr("signup.errPasswordLen"));
+    if (password !== passwordConfirm) return setErr(tr("signup.errPasswordMismatch"));
 
     try {
       setLoading(true);
@@ -76,7 +85,7 @@ export default function SignupScreen() {
       );
 
       if (result.needsConfirmation) {
-        toast.success("Compte créé. Vérifiez votre email pour confirmer.");
+        toast.success(tr("signup.createdConfirm"));
         router.replace("/(auth)/login");
         return;
       }
@@ -102,10 +111,10 @@ export default function SignupScreen() {
         }
       }
 
-      toast.success("Compte créé. Bienvenue !");
+      toast.success(tr("signup.createdWelcome"));
       router.replace("/(app)/dashboard");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erreur inconnue";
+      const msg = e instanceof Error ? e.message : tr("common.unknownError");
       setErr(msg);
       toast.error(msg);
     } finally {
@@ -120,70 +129,70 @@ export default function SignupScreen() {
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>PDCA</Text>
-        <Text style={styles.subtitle}>Créer un compte</Text>
+        <Text style={styles.subtitle}>{tr("signup.subtitle")}</Text>
 
         {/* ── Company section ─────────────────────────── */}
-        <Text style={styles.section}>Entreprise</Text>
+        <Text style={styles.section}>{tr("signup.sectionCompany")}</Text>
 
         <View style={styles.logoRow}>
           <View style={styles.logoBox}>
             {logoUri ? (
               <Image source={{ uri: logoUri }} style={styles.logoImg} />
             ) : (
-              <Text style={styles.logoPlaceholder}>Logo</Text>
+              <Text style={styles.logoPlaceholder}>{tr("signup.logoPlaceholder")}</Text>
             )}
           </View>
           <View style={{ flex: 1 }}>
-            <Button label="Choisir un logo" variant="secondary" onPress={pickLogo} />
+            <Button label={tr("signup.chooseLogo")} variant="secondary" onPress={pickLogo} />
             {logoUri ? (
               <Text style={styles.logoHint} onPress={() => setLogoUri(null)}>
-                Retirer le logo
+                {tr("signup.removeLogo")}
               </Text>
             ) : null}
           </View>
         </View>
 
         <Input
-          label="Nom de l'entreprise"
+          label={tr("signup.companyName")}
           value={companyName}
           onChangeText={setCompanyName}
-          placeholder="Ex : Métallurgie Dupont SAS"
+          placeholder={tr("signup.companyNamePh")}
           required
           autoCapitalize="words"
         />
 
         {/* ── User section ────────────────────────────── */}
-        <Text style={styles.section}>Utilisateur</Text>
+        <Text style={styles.section}>{tr("signup.sectionUser")}</Text>
 
         <Select
-          label="Rôle / Pilote"
-          value={role}
-          options={[...PILOTS]}
-          onChange={setRole}
+          label={tr("signup.roleLabel")}
+          value={vToL(role)}
+          options={roleOptions}
+          onChange={(l) => setRole(lToV(l))}
           required
-          placeholder="Choisissez votre rôle…"
+          placeholder={tr("signup.rolePh")}
         />
-        {role === "Autre" && (
+        {role === OTHER_SENTINEL && (
           <Input
-            label="Précisez le rôle"
+            label={tr("signup.customRole")}
             value={customRole}
             onChangeText={setCustomRole}
-            placeholder="Ex : Responsable Production"
+            placeholder={tr("signup.customRolePh")}
             required
           />
         )}
 
         <Input
-          label="Nom et prénom"
+          label={tr("signup.fullName")}
           value={fullName}
           onChangeText={setFullName}
-          placeholder="Ex : Jean Dupont"
+          placeholder={tr("signup.fullNamePh")}
           required
           autoCapitalize="words"
         />
 
         <Input
-          label="Email"
+          label={tr("signup.email")}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -192,7 +201,7 @@ export default function SignupScreen() {
         />
 
         <Input
-          label="Mot de passe"
+          label={tr("signup.password")}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -200,7 +209,7 @@ export default function SignupScreen() {
         />
 
         <Input
-          label="Répéter le mot de passe"
+          label={tr("signup.passwordConfirm")}
           value={passwordConfirm}
           onChangeText={setPasswordConfirm}
           secureTextEntry
@@ -209,10 +218,10 @@ export default function SignupScreen() {
 
         {err ? <Text style={styles.err}>{err}</Text> : null}
 
-        <Button label="Créer le compte" onPress={onSubmit} loading={loading} />
+        <Button label={tr("signup.submit")} onPress={onSubmit} loading={loading} />
 
         <Text style={styles.link} onPress={() => router.replace("/(auth)/login")}>
-          J'ai déjà un compte — Se connecter
+          {tr("signup.alreadyAccount")}
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

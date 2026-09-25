@@ -83,10 +83,25 @@ export default function NewPDCA() {
     PRIORITIES.find((p) => tr(p.labelKey) === l)?.value ?? "MEDIUM";
   const priorityLabel = (v: Priority) => tr("priority." + v);
 
-  const lineLabels = useMemo(() => lines.map((l) => l.label), [lines]);
+  // Display-only translation for the DB sentinel "Autre"
+  const OTHER_SENTINEL = "Autre";
+  const otherLabel = tr("common.other");
+  const vToL = (v: string | null) => (v === OTHER_SENTINEL ? otherLabel : v);
+  const lToV = (l: string) => (l === otherLabel ? OTHER_SENTINEL : l);
+
+  const lineLabels = useMemo(
+    () => lines.map((l) => (l.label === OTHER_SENTINEL ? otherLabel : l.label)),
+    [lines, otherLabel],
+  );
   const deptLabels = useMemo(() => departments.map((d) => d.label), [departments]);
-  const pilotLabels = useMemo(() => pilots.map((p) => p.label), [pilots]);
-  const defectLabels = useMemo(() => defectTypes.map((d) => d.label), [defectTypes]);
+  const pilotLabels = useMemo(
+    () => pilots.map((p) => (p.label === OTHER_SENTINEL ? otherLabel : p.label)),
+    [pilots, otherLabel],
+  );
+  const defectLabels = useMemo(
+    () => defectTypes.map((d) => (d.label === OTHER_SENTINEL ? otherLabel : d.label)),
+    [defectTypes, otherLabel],
+  );
 
   useFocusEffect(
     React.useCallback(() => {
@@ -150,7 +165,7 @@ export default function NewPDCA() {
     const e: Record<string, string> = {};
     if (!subject.trim()) e.subject = tr("pdcaForm.subjectRequired");
     if (!line) e.line = tr("pdcaForm.lineRequired");
-    if (line === "Autre" && !lineOther.trim()) e.lineOther = tr("pdcaForm.lineOtherRequired");
+    if (line === OTHER_SENTINEL && !lineOther.trim()) e.lineOther = tr("pdcaForm.lineOtherRequired");
     if (!actions.length) e.actions = tr("pdcaForm.atLeastOneAction");
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -170,9 +185,9 @@ export default function NewPDCA() {
       subject: subject.trim(),
       description: description.trim() || null,
       line: line!,
-      line_other: line === "Autre" ? lineOther.trim() : null,
+      line_other: line === OTHER_SENTINEL ? lineOther.trim() : null,
       defect_type: defectType,
-      defect_type_other: defectType === "Autre" ? defectOther.trim() : null,
+      defect_type_other: defectType === OTHER_SENTINEL ? defectOther.trim() : null,
       priority,
       department,
       actions: actions.map(({ tempId, ...rest }) => rest),
@@ -262,13 +277,13 @@ export default function NewPDCA() {
         <Card>
           <Select
             label={tr("pdcaForm.line")}
-            value={line}
+            value={vToL(line)}
             options={lineLabels}
-            onChange={setLine}
+            onChange={(l) => setLine(lToV(l))}
             required
             error={errors.line}
           />
-          {line === "Autre" && (
+          {line === OTHER_SENTINEL && (
             <Input
               label={tr("pdcaForm.lineOther")}
               value={lineOther}
@@ -285,11 +300,11 @@ export default function NewPDCA() {
           />
           <Select
             label={tr("pdcaForm.defectType")}
-            value={defectType}
+            value={vToL(defectType)}
             options={defectLabels}
-            onChange={setDefectType}
+            onChange={(l) => setDefectType(lToV(l))}
           />
-          {defectType === "Autre" && (
+          {defectType === OTHER_SENTINEL && (
             <Input
               label={tr("pdcaForm.defectTypeOther")}
               value={defectOther}
@@ -366,18 +381,18 @@ export default function NewPDCA() {
 
               <Select
                 label={tr("pdcaForm.pilot")}
-                value={pilotIsOther ? "Autre" : editing.pilot_name}
+                value={(pilotIsOther || editing.pilot_name === OTHER_SENTINEL) ? otherLabel : editing.pilot_name}
                 options={pilotLabels}
                 required
                 error={errors.pilot_name}
                 onChange={(v) => {
-                  const isOther = v === "Autre";
+                  const isOther = v === otherLabel;
                   setPilotIsOther(isOther);
                   if (!isOther) {
                     setPilotOther("");
                     setEditing({ ...editing, pilot_name: v });
                   } else {
-                    setEditing({ ...editing, pilot_name: "Autre" });
+                    setEditing({ ...editing, pilot_name: OTHER_SENTINEL });
                   }
                 }}
               />
@@ -389,7 +404,7 @@ export default function NewPDCA() {
                     setPilotOther(text);
                     setEditing({
                       ...editing,
-                      pilot_name: text.trim() || "Autre",
+                      pilot_name: text.trim() || OTHER_SENTINEL,
                     });
                   }}
                   required
