@@ -45,10 +45,10 @@ const emptyAction = (): ActionForm => ({
   status: "OPEN",
 });
 
-const PRIORITIES: { value: Priority; label: string }[] = [
-  { value: "LOW", label: "Faible" },
-  { value: "MEDIUM", label: "Moyenne" },
-  { value: "HIGH", label: "Élevée" },
+const PRIORITIES: { value: Priority; labelKey: string }[] = [
+  { value: "LOW", labelKey: "priority.LOW" },
+  { value: "MEDIUM", labelKey: "priority.MEDIUM" },
+  { value: "HIGH", labelKey: "priority.HIGH" },
 ];
 
 export default function NewPDCA() {
@@ -75,9 +75,13 @@ export default function NewPDCA() {
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const priorityLabels = useMemo(() => PRIORITIES.map((p) => p.label), []);
+  const priorityLabels = useMemo(
+    () => PRIORITIES.map((p) => tr(p.labelKey)),
+    [tr],
+  );
   const priorityFromLabel = (l: string): Priority =>
-    PRIORITIES.find((p) => p.label === l)?.value ?? "MEDIUM";
+    PRIORITIES.find((p) => tr(p.labelKey) === l)?.value ?? "MEDIUM";
+  const priorityLabel = (v: Priority) => tr("priority." + v);
 
   const lineLabels = useMemo(() => lines.map((l) => l.label), [lines]);
   const deptLabels = useMemo(() => departments.map((d) => d.label), [departments]);
@@ -123,10 +127,10 @@ export default function NewPDCA() {
   const upsertAction = () => {
     if (!editing) return;
     const e: Record<string, string> = {};
-    if (!editing.action.trim()) e.action = "Action requise.";
-    if (!editing.pilot_name.trim()) e.pilot_name = "Pilote requis.";
+    if (!editing.action.trim()) e.action = tr("pdcaForm.actionRequired");
+    if (!editing.pilot_name.trim()) e.pilot_name = tr("pdcaForm.pilotRequired");
     if (editing.due_date && editing.due_date < editing.opening_date)
-      e.due_date = "Échéance < date d'ouverture.";
+      e.due_date = tr("pdcaForm.dueBeforeOpening");
     setErrors(e);
     if (Object.keys(e).length) return;
 
@@ -144,21 +148,21 @@ export default function NewPDCA() {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!subject.trim()) e.subject = "Sujet requis.";
-    if (!line) e.line = "Ligne requise.";
-    if (line === "Autre" && !lineOther.trim()) e.lineOther = "Précisez la ligne.";
-    if (!actions.length) e.actions = "Ajoutez au moins une action.";
+    if (!subject.trim()) e.subject = tr("pdcaForm.subjectRequired");
+    if (!line) e.line = tr("pdcaForm.lineRequired");
+    if (line === "Autre" && !lineOther.trim()) e.lineOther = tr("pdcaForm.lineOtherRequired");
+    if (!actions.length) e.actions = tr("pdcaForm.atLeastOneAction");
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
   const onSubmit = async () => {
     if (!validate()) {
-      alert({ title: "Validation", message: "Veuillez corriger les erreurs." });
+      alert({ title: tr("pdcaForm.validationTitle"), message: tr("pdcaForm.fixErrors") });
       return;
     }
     if (!session?.user) {
-      alert({ title: "Session expirée", message: "Veuillez vous reconnecter." });
+      alert({ title: tr("pdcaForm.sessionExpiredTitle"), message: tr("pdcaForm.sessionExpiredMsg") });
       return;
     }
 
@@ -177,14 +181,14 @@ export default function NewPDCA() {
     try {
       setSubmitting(true);
       const created = await createPDCA(draft, session.user.id);
-      toast.success(`PDCA ${created.reference} créé`);
+      toast.success(`${tr("pdcaForm.created")} — ${created.reference}`);
       if (draft.department) {
         router.replace(`/(app)/department/${draft.department}`);
       } else {
         router.replace(`/(app)/pdca/${created.id}`);
       }
     } catch (err) {
-      alert({ title: "Erreur", message: errorMessage(err) });
+      alert({ title: tr("common.error"), message: errorMessage(err) });
     } finally {
       setSubmitting(false);
     }
@@ -211,7 +215,7 @@ export default function NewPDCA() {
     return (
       <View style={styles.centerWrap}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
-        <Text style={styles.loadingTxt}>Chargement de la configuration…</Text>
+        <Text style={styles.loadingTxt}>{tr("pdcaForm.loadingConfig")}</Text>
       </View>
     );
   }
@@ -294,7 +298,7 @@ export default function NewPDCA() {
           )}
           <Select
             label={tr("pdcaForm.priority")}
-            value={PRIORITIES.find((p) => p.value === priority)?.label ?? "Moyenne"}
+            value={priorityLabel(priority)}
             options={priorityLabels}
             onChange={(l) => setPriority(priorityFromLabel(l))}
           />
@@ -416,7 +420,7 @@ export default function NewPDCA() {
               <View style={styles.editActions}>
                 <View style={{ flex: 1 }}>
                   <Button
-                    label="Annuler"
+                    label={tr("common.cancel")}
                     variant="secondary"
                     onPress={() => setEditing(null)}
                   />

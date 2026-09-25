@@ -17,6 +17,7 @@ import { ExportButton } from "@/components/ExportButton";
 import { FilterBar, FilterState, applyFilters, defaultFilters } from "@/components/FilterBar";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 function fmtDate(iso: string): string {
   try {
@@ -36,13 +37,14 @@ export default function PDCAList() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const { t: tr } = useTranslation();
 
   const load = useCallback(async () => {
     try {
       setError(null);
       setItems(await listPDCA());
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   }, []);
 
@@ -80,7 +82,7 @@ export default function PDCAList() {
       {/* ── Header ───────────────────────────────────── */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Liste des PDCA</Text>
+          <Text style={styles.title}>{tr("pdcaList.title")}</Text>
           <Text style={styles.sub}>
             {filtered.length} / {items.length} PDCA
           </Text>
@@ -89,20 +91,20 @@ export default function PDCAList() {
 
       {/* ── Stats compactes ─────────────────────────── */}
       <View style={styles.statsRow}>
-        <StatPill label="Total" value={stats.total} color={theme.colors.primary} />
-        <StatPill label="Ouverts" value={stats.open} color={theme.colors.info} />
+        <StatPill label={tr("pdcaList.statTotal")} value={stats.total} color={theme.colors.primary} />
+        <StatPill label={tr("statusFilter.OPEN")} value={stats.open} color={theme.colors.info} />
         <StatPill
-          label="En cours"
+          label={tr("statusFilter.IN_PROGRESS")}
           value={stats.progress}
           color={theme.colors.warning}
         />
         <StatPill
-          label="Terminés"
+          label={tr("statusFilter.COMPLETED")}
           value={stats.done}
           color={theme.colors.success}
         />
         <StatPill
-          label="En retard"
+          label={tr("statusFilter.OVERDUE")}
           value={stats.overdue}
           color={theme.colors.danger}
         />
@@ -112,24 +114,24 @@ export default function PDCAList() {
       <View style={styles.actionsRow}>
         <View style={{ flex: 1 }}>
           <Link href="/(app)/pdca/new" asChild>
-            <Button label="+ Nouveau PDCA" onPress={() => {}} />
+            <Button label={`+ ${tr("pdcaList.new")}`} onPress={() => {}} />
           </Link>
         </View>
       </View>
 
       <View style={styles.exportWrap}>
         <ExportButton
-          label="📊 Exporter la vue (7 colonnes)"
+          label={tr("pdcaList.exportBtn")}
           filename="pdca-list"
           headers={[
-            "Référence",
-            "Sujet",
-            "Ligne",
-            "Département",
-            "Priorité",
-            "Statut",
-            "Créé le",
-            "Nb actions",
+            tr("department.hRef"),
+            tr("department.hSubject"),
+            tr("department.hLine"),
+            tr("department.hDepartment"),
+            tr("department.hPriority"),
+            tr("pdcaList.hStatusShort"),
+            tr("pdcaList.hCreatedAt"),
+            tr("department.hActionsCount"),
           ]}
           rows={() =>
             filtered.map((p) => [
@@ -138,10 +140,10 @@ export default function PDCAList() {
               p.line,
               p.department ?? "",
               p.priority === "HIGH"
-                ? "Élevée"
+                ? tr("priority.HIGH")
                 : p.priority === "MEDIUM"
-                  ? "Moyenne"
-                  : "Faible",
+                  ? tr("priority.MEDIUM")
+                  : tr("priority.LOW"),
               p.status,
               fmtDate(p.created_at),
               p.pdca_actions.length,
@@ -156,8 +158,8 @@ export default function PDCAList() {
       {/* ── Liste ────────────────────────────────────── */}
       {filtered.length === 0 ? (
         <EmptyState
-          title="Aucun PDCA"
-          subtitle="Commencez par en créer un."
+          title={tr("pdcaList.empty")}
+          subtitle={tr("pdcaList.emptySub")}
           icon="📋"
         />
       ) : (

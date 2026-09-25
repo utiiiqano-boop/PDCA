@@ -34,17 +34,18 @@ import type {
 } from "@/types/database";
 import { theme } from "@/theme";
 
-const PHASE_STEPS: { key: PDCAPhase; label: string; pct: number }[] = [
-  { key: "P", label: "Plan", pct: 25 },
-  { key: "D", label: "Do", pct: 50 },
-  { key: "C", label: "Check", pct: 75 },
-  { key: "A", label: "Act", pct: 100 },
+const PHASE_STEPS: { key: PDCAPhase; phaseKey: string; pct: number }[] = [
+  { key: "P", phaseKey: "PLAN", pct: 25 },
+  { key: "D", phaseKey: "DO", pct: 50 },
+  { key: "C", phaseKey: "CHECK", pct: 75 },
+  { key: "A", phaseKey: "ACT", pct: 100 },
 ];
 
 export default function PDCADetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session, profile } = useAuth();
   const { alert, confirm, toast } = useUI();
+  const { t: tr } = useTranslation();
 
   const [item, setItem] = useState<PDCAWithActions | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,7 @@ export default function PDCADetail() {
       setError(null);
       setItem(await getPDCA(id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur");
+      setError(e instanceof Error ? e.message : tr("common.error"));
     }
   }, [id]);
 
@@ -95,9 +96,9 @@ export default function PDCADetail() {
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
-  if (!item) return <ErrorState message="PDCA introuvable." />;
+  if (!item) return <ErrorState message={tr("pdcaDetailScreen.notFound")} />;
 
-  const signerName = profile?.full_name ?? "Utilisateur";
+  const signerName = profile?.full_name ?? tr("pdcaDetailScreen.defaultUser");
 
   const handlePhaseChange = (action: PDCAActionRow, next: PDCAPhase) => {
     if (next === "A") {
@@ -114,7 +115,7 @@ export default function PDCADetail() {
     })
       .then(() => load())
       .catch((e) =>
-        alert({ title: "Erreur", message: e instanceof Error ? e.message : "Erreur" }),
+        alert({ title: tr("common.error"), message: e instanceof Error ? e.message : tr("common.error") }),
       );
   };
 
@@ -145,7 +146,7 @@ export default function PDCADetail() {
     });
     await persistSignature(completingAction.id, signaturePaths);
     setCompletingAction(null);
-    toast.success("Action clôturée");
+    toast.success(tr("pdcaDetailScreen.actionClosed"));
     await load();
   };
 
@@ -164,25 +165,25 @@ export default function PDCADetail() {
     await persistSignature(completingAction.id, signaturePaths);
     const pdcaId = item.id;
     setCompletingAction(null);
-    toast.success("Action clôturée — redirection vers Leçons apprises");
+    toast.success(tr("pdcaDetailScreen.actionClosedRedirect"));
     await load();
     router.push(`/(app)/lessons-learned?pdcaId=${pdcaId}`);
   };
 
   const onCancel = async () => {
     const ok = await confirm({
-      title: "Annuler ce PDCA ?",
-      message: "Le PDCA sera marqué comme annulé. Réversible côté base.",
-      confirmLabel: "Annuler le PDCA",
+      title: tr("pdcaDetailScreen.cancelConfirm"),
+      message: tr("pdcaDetailScreen.cancelConfirmSub"),
+      confirmLabel: tr("pdcaDetailScreen.cancelConfirmLabel"),
       destructive: true,
     });
     if (!ok || !session?.user) return;
     try {
       await cancelPDCA(item.id, session.user.id);
-      toast.info("PDCA annulé");
+      toast.info(tr("pdcaDetailScreen.pdcaCancelled"));
       await load();
     } catch (e) {
-      alert({ title: "Erreur", message: e instanceof Error ? e.message : "Erreur" });
+      alert({ title: tr("common.error"), message: e instanceof Error ? e.message : tr("common.error") });
     }
   };
 
@@ -224,7 +225,7 @@ export default function PDCADetail() {
         {/* Global progress bar */}
         <View style={styles.progressSection}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Avancement global</Text>
+            <Text style={styles.progressLabel}>{tr("pdcaDetailScreen.globalProgress")}</Text>
             <Text style={styles.progressPct}>{progressPct}%</Text>
           </View>
           <View style={styles.progressTrack}>
@@ -233,8 +234,7 @@ export default function PDCADetail() {
             />
           </View>
           <Text style={styles.progressMeta}>
-            {completedActions} / {totalActions} action{totalActions > 1 ? "s" : ""}{" "}
-            terminée{completedActions > 1 ? "s" : ""}
+            {completedActions} / {totalActions} {completedActions > 1 ? tr("pdcaDetailScreen.completedOfMany") : tr("pdcaDetailScreen.completedOf")}
           </Text>
         </View>
 
@@ -245,7 +245,7 @@ export default function PDCADetail() {
               <View style={styles.phaseDot}>
                 <Text style={styles.phaseDotTxt}>{p.key}</Text>
               </View>
-              <Text style={styles.phaseLbl}>{p.label}</Text>
+              <Text style={styles.phaseLbl}>{tr("phase." + p.phaseKey)}</Text>
               <Text style={styles.phasePct}>{p.pct}%</Text>
             </View>
           ))}
@@ -254,7 +254,7 @@ export default function PDCADetail() {
 
       {/* ── Actions list ─────────────────────────────── */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Actions</Text>
+        <Text style={styles.sectionTitle}>{tr("pdcaDetailScreen.actionsTitle")}</Text>
         <View style={styles.sectionCount}>
           <Text style={styles.sectionCountTxt}>{totalActions}</Text>
         </View>
@@ -264,9 +264,9 @@ export default function PDCADetail() {
         <Card>
           <View style={styles.emptyBox}>
             <Text style={styles.emptyIcon}>📝</Text>
-            <Text style={styles.emptyTitle}>Aucune action</Text>
+            <Text style={styles.emptyTitle}>{tr("pdcaDetailScreen.noActions")}</Text>
             <Text style={styles.emptyTxt}>
-              Ce PDCA n'a pas encore d'action enregistrée.
+              {tr("pdcaDetailScreen.noActionsSub")}
             </Text>
           </View>
         </Card>
@@ -290,7 +290,7 @@ export default function PDCADetail() {
             {a.status !== "CANCELLED" && a.status !== "COMPLETED" ? (
               <View style={styles.actionBtnWrap}>
                 <Button
-                  label="Annuler l'action"
+                  label={tr("pdcaDetailScreen.cancelAction")}
                   variant="secondary"
                   size="sm"
                   onPress={() => setCancellingAction(a)}
@@ -300,8 +300,8 @@ export default function PDCADetail() {
               <View style={styles.statusBanner}>
                 <Text style={styles.statusBannerTxt}>
                   {a.status === "COMPLETED"
-                    ? "✓ Action terminée"
-                    : "⊘ Action annulée"}
+                    ? tr("pdcaDetailScreen.actionDone")
+                    : tr("pdcaDetailScreen.actionCancelled")}
                 </Text>
               </View>
             )}
@@ -312,11 +312,11 @@ export default function PDCADetail() {
       {/* ── Danger zone ─────────────────────────────── */}
       {item.status !== "CANCELLED" ? (
         <View style={styles.dangerWrap}>
-          <Button label="Annuler ce PDCA" variant="danger" onPress={onCancel} />
+          <Button label={tr("pdcaDetailScreen.cancelPdca")} variant="danger" onPress={onCancel} />
         </View>
       ) : (
         <View style={styles.cancelledBanner}>
-          <Text style={styles.cancelledTxt}>Ce PDCA est annulé</Text>
+          <Text style={styles.cancelledTxt}>{tr("pdcaDetailScreen.cancelledBanner")}</Text>
         </View>
       )}
 
@@ -338,7 +338,7 @@ export default function PDCADetail() {
             session.user.id,
           );
           setEditingAction(null);
-          toast.success("Action mise à jour");
+          toast.success(tr("pdcaDetailScreen.actionUpdated"));
           await load();
         }}
       />
@@ -360,7 +360,7 @@ export default function PDCADetail() {
           if (!cancellingAction || !session?.user) return;
           await cancelActionWithComment(cancellingAction.id, comment, session.user.id);
           setCancellingAction(null);
-          toast.info("Action annulée");
+          toast.info(tr("pdcaDetailScreen.actionCancelledToast"));
           await load();
         }}
       />
