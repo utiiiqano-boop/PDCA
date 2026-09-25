@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 export type StatusFilter =
   | "ALL"
@@ -24,22 +25,6 @@ export const defaultFilters: FilterState = {
   priority: "ALL",
 };
 
-const STATUS_LABELS: Record<StatusFilter, string> = {
-  ALL: "Tous",
-  OPEN: "Ouverts",
-  IN_PROGRESS: "En cours",
-  COMPLETED: "Terminés",
-  OVERDUE: "En retard",
-  CANCELLED: "Annulés",
-};
-
-const PRIORITY_LABELS: Record<PriorityFilter, string> = {
-  ALL: "Toutes",
-  LOW: "Faible",
-  MEDIUM: "Moyenne",
-  HIGH: "Élevée",
-};
-
 interface Props {
   value: FilterState;
   onChange: (next: FilterState) => void;
@@ -53,8 +38,10 @@ export function FilterBar({
   onChange,
   showPriority = true,
   showStatus = true,
-  placeholder = "Rechercher (référence, sujet…)",
+  placeholder,
 }: Props) {
+  const { t: tr } = useTranslation();
+  const ph = placeholder ?? tr("filter.searchPh");
   const statuses: StatusFilter[] = ["ALL", "OPEN", "IN_PROGRESS", "COMPLETED", "OVERDUE"];
   const priorities: PriorityFilter[] = ["ALL", "LOW", "MEDIUM", "HIGH"];
 
@@ -63,14 +50,14 @@ export function FilterBar({
       <TextInput
         value={value.search}
         onChangeText={(t) => onChange({ ...value, search: t })}
-        placeholder={placeholder}
+        placeholder={ph}
         placeholderTextColor={theme.colors.textMuted}
         style={styles.search}
       />
 
       {showStatus ? (
         <>
-          <Text style={styles.rowLabel}>Statut</Text>
+          <Text style={styles.rowLabel}>{tr("filter.status")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {statuses.map((s) => {
               const active = value.status === s;
@@ -81,7 +68,7 @@ export function FilterBar({
                   style={[styles.chip, active && styles.chipActive]}
                 >
                   <Text style={[styles.chipTxt, active && styles.chipTxtActive]}>
-                    {STATUS_LABELS[s]}
+                    {tr("statusFilter." + s)}
                   </Text>
                 </Pressable>
               );
@@ -92,7 +79,7 @@ export function FilterBar({
 
       {showPriority ? (
         <>
-          <Text style={styles.rowLabel}>Priorité</Text>
+          <Text style={styles.rowLabel}>{tr("filter.priority")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
             {priorities.map((p) => {
               const active = value.priority === p;
@@ -103,7 +90,7 @@ export function FilterBar({
                   style={[styles.chip, active && styles.chipActive]}
                 >
                   <Text style={[styles.chipTxt, active && styles.chipTxtActive]}>
-                    {PRIORITY_LABELS[p]}
+                    {tr("priorityFilter." + p)}
                   </Text>
                 </Pressable>
               );

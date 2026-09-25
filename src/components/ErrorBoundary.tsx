@@ -2,12 +2,25 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface Props {
   children: React.ReactNode;
 }
 interface State {
   error: Error | null;
+}
+
+function Fallback({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t: tr } = useTranslation();
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.title}>{tr("errorBoundary.title")}</Text>
+      <Text style={styles.message}>{message}</Text>
+      <View style={{ height: 16 }} />
+      <Button label={tr("errorBoundary.retry")} onPress={onRetry} />
+    </View>
+  );
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
@@ -26,14 +39,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.error) {
-      return (
-        <View style={styles.wrap}>
-          <Text style={styles.title}>Une erreur est survenue</Text>
-          <Text style={styles.message}>{this.state.error.message}</Text>
-          <View style={{ height: 16 }} />
-          <Button label="Réessayer" onPress={this.reset} />
-        </View>
-      );
+      return <Fallback message={this.state.error.message} onRetry={this.reset} />;
     }
     return this.props.children;
   }

@@ -15,6 +15,7 @@ import {
 import Svg, { Path } from "react-native-svg";
 import type { SignaturePoint } from "@/types/database";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 export interface SignaturePadHandle {
   getPaths: () => SignaturePoint[][];
@@ -41,6 +42,7 @@ function pathToD(points: SignaturePoint[]): string {
 
 export const SignaturePad = forwardRef<SignaturePadHandle, Props>(
   ({ width = 320, height = 180, color = theme.colors.primary, style }, ref) => {
+    const { t: tr } = useTranslation();
     const [paths, setPaths] = useState<SignaturePoint[][]>([]);
     const pathsRef = useRef<SignaturePoint[][]>([]);
 
@@ -99,7 +101,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, Props>(
           ))}
         </Svg>
         {paths.length === 0 ? (
-          <Text style={styles.placeholder}>Signez ici avec votre doigt</Text>
+          <Text style={styles.placeholder}>{tr("signature.hint")}</Text>
         ) : null}
       </View>
     );

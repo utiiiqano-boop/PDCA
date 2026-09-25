@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { theme } from "@/theme";
+import { useTranslation } from "@/i18n/I18nProvider";
 
 interface Props {
   label: string;
@@ -31,8 +32,12 @@ export function todayISO(): string {
   return toISO(new Date());
 }
 
+const LOCALES: Record<string, string> = { fr: "fr-FR", en: "en-US", ar: "ar-SA" };
+
 export function DateField({ label, value, onChange, required, error }: Props) {
+  const { t: tr, language } = useTranslation();
   const [show, setShow] = useState(false);
+  const locale = LOCALES[language] ?? "fr-FR";
 
   // ---------- Web ----------
   if (Platform.OS === "web") {
@@ -67,7 +72,7 @@ export function DateField({ label, value, onChange, required, error }: Props) {
   }
 
   // ---------- Native ----------
-  const display = value ? fromISO(value).toLocaleDateString("fr-FR") : "Sélectionner…";
+  const display = value ? fromISO(value).toLocaleDateString(locale) : tr("select.placeholder");
 
   return (
     <View style={styles.wrap}>
