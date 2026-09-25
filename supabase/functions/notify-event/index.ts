@@ -2,6 +2,45 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 
+// Notification title translations. Keys are the FR title stored in DB.
+const NT = {
+  fr: {} as Record<string, string>,
+  en: {
+    "Nouvelle action": "New action",
+    "Pilote modifié": "Owner changed",
+    "Échéance modifiée": "Due date changed",
+    "Phase modifiée": "Phase changed",
+    "Action clôturée": "Action completed",
+    "Action annulée": "Action cancelled",
+    "PDCA annulé": "PDCA cancelled",
+  } as Record<string, string>,
+  ar: {
+    "Nouvelle action": "إجراء جديد",
+    "Pilote modifié": "تم تغيير المسؤول",
+    "Échéance modifiée": "تم تغيير الموعد",
+    "Phase modifiée": "تم تغيير المرحلة",
+    "Action clôturée": "تم إغلاق الإجراء",
+    "Action annulée": "تم إلغاء الإجراء",
+    "PDCA annulé": "تم إلغاء PDCA",
+  } as Record<string, string>,
+} as const;
+
+type Lang = keyof typeof NT;
+const langOf = (l: unknown): Lang =>
+  l === "en" || l === "ar" ? l : "fr";
+
+function translateTitle(frTitle: string, key: string | null, lang: Lang): string {
+  if (lang === "fr") return frTitle;
+  // Priorité : colonne title_key si remplie, sinon mapping par titre FR
+  if (key) {
+    const map = NT[lang];
+    // title_key est court (ex 'actionCreated'), on stocke le mapping par titre complet
+    // (la colonne title_key est là pour le futur, mais on utilise le titre FR comme clé)
+    void map;
+  }
+  return NT[lang][frTitle] ?? frTitle;
+}
+
 Deno.serve(async (req) => {
   try {
     const { notification_id } = await req.json();
@@ -38,7 +77,7 @@ Deno.serve(async (req) => {
     // 2. Load tokens of the SAME COMPANY only, except the actor
     let query = supabase
       .from("profiles")
-      .select("id, expo_push_token")
+      .select("id, expo_push_token, language")
       .eq("company_id", notif.company_id)         // ← FILTRE ENTREPRISE
       .not("expo_push_token", "is", null);
 
@@ -56,10 +95,10 @@ Deno.serve(async (req) => {
 
     const messages = (profiles ?? [])
       .filter((p) => p.expo_push_token)
-      .map((p) => ({
+      .map((p: { expo_push_token: string; language: string | null }) => ({
         to: p.expo_push_token,
         sound: "default",
-        title: notif.title,
+        title: translateTitle(notif.title, notif.title_key, langOf(p.language)),
         body: notif.body,
         data: {
           type: notif.event_type,
