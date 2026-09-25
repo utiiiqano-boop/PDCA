@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/hooks/useAuth";
+import { I18nProvider } from "@/i18n/I18nProvider";
 import { UIProvider } from "@/ui/UIProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { configError } from "@/lib/supabase";
@@ -29,6 +30,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <UIProvider>
+          <I18nProvider>
           <AuthProvider>
             <StatusBar style="dark" />
             <Stack screenOptions={{ headerShown: false }}>
@@ -37,6 +39,7 @@ export default function RootLayout() {
               <Stack.Screen name="(app)" />
             </Stack>
           </AuthProvider>
+        </I18nProvider>
         </UIProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

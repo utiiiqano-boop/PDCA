@@ -11,11 +11,13 @@ import { router } from "expo-router";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/i18n/I18nProvider";
 import { useUI } from "@/ui/UIProvider";
 import { theme } from "@/theme";
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const { t: tr } = useTranslation();
   const { toast } = useUI();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,10 +61,10 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Connexion</Text>
+          <Text style={styles.cardTitle}>{tr("auth.login")}</Text>
 
           <Input
-            label="Email"
+            label={tr("auth.email")}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -71,7 +73,7 @@ export default function LoginScreen() {
             required
           />
           <Input
-            label="Mot de passe"
+            label={tr("auth.password")}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -81,20 +83,20 @@ export default function LoginScreen() {
 
           {err ? <Text style={styles.err}>{err}</Text> : null}
 
-          <Button label="Se connecter" onPress={onSubmit} loading={loading} />
+          <Button label={tr("auth.signIn")} onPress={onSubmit} loading={loading} />
 
           <Text
             style={styles.link}
             onPress={() => router.push("/(auth)/forgot-password")}
           >
-            Mot de passe oublié ?
+            {tr("auth.forgotPassword")}
           </Text>
         </View>
 
         <View style={styles.signupWrap}>
-          <Text style={styles.signupLabel}>Pas encore de compte ?</Text>
+          <Text style={styles.signupLabel}>{tr("auth.noAccount")}</Text>
           <Button
-            label="Créer une entreprise"
+            label={tr("auth.createCompany")}
             variant="secondary"
             onPress={() => router.push("/(auth)/signup")}
           />

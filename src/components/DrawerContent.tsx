@@ -12,6 +12,8 @@ import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useRouter, usePathname } from "expo-router";
 import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/i18n/I18nProvider";
+import { LanguagePicker } from "@/components/LanguagePicker";
 import { theme } from "@/theme";
 
 interface Item {
@@ -26,6 +28,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   const path = usePathname();
   const { profile } = useAuth();
   const { departments, loading } = useCompanyOptions();
+  const { t } = useTranslation();
 
   const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
   const fullName = profile?.full_name ?? "";
@@ -37,7 +40,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
       if (active && typeof active.blur === "function") active.blur();
     }
     router.push(href as never);
-    // Give navigation a moment, then close drawer
     setTimeout(() => {
       try {
         props.navigation.closeDrawer();
@@ -46,9 +48,9 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   };
 
   const navItems: Item[] = [
-    { label: "Tableau de bord", href: "/(app)/dashboard", match: "/dashboard", icon: "📊" },
-    { label: "Liste des PDCA", href: "/(app)/pdca", match: "/pdca", icon: "📋" },
-    { label: "Nouveau PDCA", href: "/(app)/pdca/new", match: "/pdca/new", icon: "➕" },
+    { label: t("nav.dashboard"), href: "/(app)/dashboard", match: "/dashboard", icon: "📊" },
+    { label: t("nav.pdcaList"), href: "/(app)/pdca", match: "/pdca", icon: "📋" },
+    { label: t("nav.pdcaForm"), href: "/(app)/pdca/new", match: "/pdca/new", icon: "➕" },
   ];
 
   const deptItems: Item[] = departments.map((d) => ({
@@ -59,20 +61,20 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   }));
 
   const analysisItems: Item[] = [
-    { label: "Pilotes", href: "/(app)/pilotes", match: "/pilotes", icon: "👤" },
-    { label: "Graphiques", href: "/(app)/graphiques", match: "/graphiques", icon: "📈" },
-    { label: "Historique", href: "/(app)/historique", match: "/historique", icon: "🕐" },
-    { label: "Rapport hebdo", href: "/(app)/rapport-hebdo", match: "/rapport-hebdo", icon: "📄" },
-    { label: "Lessons Learned", href: "/(app)/lessons-learned", match: "/lessons-learned", icon: "💡" },
-    { label: "Actions annulées", href: "/(app)/actions-annulees", match: "/actions-annulees", icon: "🚫" },
-    { label: "Tour Usine", href: "/(app)/tour-usine", match: "/tour-usine", icon: "🏗️" },
+    { label: t("nav.pilots"), href: "/(app)/pilotes", match: "/pilotes", icon: "👤" },
+    { label: t("nav.charts"), href: "/(app)/graphiques", match: "/graphiques", icon: "📈" },
+    { label: t("nav.history"), href: "/(app)/historique", match: "/historique", icon: "🕐" },
+    { label: t("nav.weeklyReport"), href: "/(app)/rapport-hebdo", match: "/rapport-hebdo", icon: "📄" },
+    { label: t("nav.lessons"), href: "/(app)/lessons-learned", match: "/lessons-learned", icon: "💡" },
+    { label: t("nav.cancelled"), href: "/(app)/actions-annulees", match: "/actions-annulees", icon: "🚫" },
+    { label: t("nav.factoryTour"), href: "/(app)/tour-usine", match: "/tour-usine", icon: "🏗️" },
   ];
 
   const adminItems: Item[] = isAdmin
     ? [
-        { label: "Configuration", href: "/(app)/company-options", match: "/company-options", icon: "⚙️" },
-        { label: "Utilisateurs", href: "/(app)/company-users", match: "/company-users", icon: "👥" },
-        { label: "Mon entreprise", href: "/(app)/company-settings", match: "/company-settings", icon: "🏢" },
+        { label: t("nav.configuration"), href: "/(app)/company-options", match: "/company-options", icon: "⚙️" },
+        { label: t("nav.users"), href: "/(app)/company-users", match: "/company-users", icon: "👥" },
+        { label: t("nav.company"), href: "/(app)/company-settings", match: "/company-settings", icon: "🏢" },
       ]
     : [];
 
@@ -84,7 +86,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         return (
           <Pressable
             key={item.href}
-            // onPress fires only on real taps, NOT on scroll/swipe
             onPress={() => handlePress(item.href)}
             style={({ pressed }) => [
               styles.item,
@@ -111,7 +112,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
 
   return (
     <View style={styles.root}>
-      {/* ── Header ─────────────────────────────── */}
       <View style={styles.header}>
         <View style={styles.headerBadge}>
           <Text style={styles.headerBadgeText}>PDCA</Text>
@@ -119,33 +119,32 @@ export function DrawerContent(props: DrawerContentComponentProps) {
         <Text style={styles.headerSub}>Gestion industrielle</Text>
       </View>
 
-      {/* ── Scrollable body ────────────────────── */}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.wrap}
         showsVerticalScrollIndicator
-        bounces={false}
-        // Important: standard ScrollView props so swipe-to-scroll works naturally
       >
-        {renderSection("Navigation", navItems)}
+        <Text style={styles.langTitle}>{t("language.select")}</Text>
+        <LanguagePicker />
+
+        {renderSection(t("nav.navigation"), navItems)}
 
         {loading ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Départements</Text>
+            <Text style={styles.sectionTitle}>{t("nav.departments")}</Text>
             <ActivityIndicator color={theme.colors.primary} style={{ marginVertical: 12 }} />
           </View>
         ) : deptItems.length > 0 ? (
-          renderSection("Départements", deptItems)
+          renderSection(t("nav.departments"), deptItems)
         ) : null}
 
-        {renderSection("Analyse", analysisItems)}
+        {renderSection(t("nav.analysis"), analysisItems)}
 
-        {isAdmin ? renderSection("Administration", adminItems) : null}
+        {isAdmin ? renderSection(t("nav.admin"), adminItems) : null}
 
         <View style={{ height: 24 }} />
       </ScrollView>
 
-      {/* ── Footer: user info ──────────────────── */}
       <View style={styles.footer}>
         <View style={[styles.avatar, isAdmin && styles.avatarAdmin]}>
           <Text style={styles.avatarTxt}>
@@ -167,7 +166,6 @@ export function DrawerContent(props: DrawerContentComponentProps) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.colors.surface },
-
   header: {
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 16,
@@ -188,15 +186,19 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     letterSpacing: 1,
   },
-  headerSub: {
-    fontSize: 12,
-    color: "#ffffffcc",
-    fontWeight: "600",
-  },
-
+  headerSub: { fontSize: 12, color: "#ffffffcc", fontWeight: "600" },
   scroll: { flex: 1, backgroundColor: theme.colors.surface },
   wrap: { paddingBottom: 12 },
-
+  langTitle: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: theme.colors.textMuted,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
   section: { marginBottom: 4 },
   sectionTitle: {
     fontSize: 10,
@@ -208,20 +210,17 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-
   item: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    minHeight: 50,
+    minHeight: 46,
     gap: 12,
     borderLeftWidth: 3,
     borderLeftColor: "transparent",
   },
-  itemPressed: {
-    backgroundColor: "#f1f5f9",
-  },
+  itemPressed: { backgroundColor: "#f1f5f9" },
   itemActive: {
     backgroundColor: theme.colors.primary + "0d",
     borderLeftColor: theme.colors.primary,
@@ -229,13 +228,7 @@ const styles = StyleSheet.create({
   itemIcon: { fontSize: 16, width: 22, textAlign: "center" },
   itemTxt: { flex: 1, fontSize: 14, color: theme.colors.text, fontWeight: "500" },
   itemTxtActive: { color: theme.colors.primary, fontWeight: "800" },
-  activeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.colors.primary,
-  },
-
+  activeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.primary },
   footer: {
     flexDirection: "row",
     alignItems: "center",
@@ -254,9 +247,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarAdmin: {
-    backgroundColor: theme.colors.primary,
-  },
+  avatarAdmin: { backgroundColor: theme.colors.primary },
   avatarTxt: { color: "#fff", fontWeight: "800", fontSize: 18 },
   footerName: { fontSize: 13, fontWeight: "700", color: theme.colors.text },
   footerRole: { fontSize: 11, color: theme.colors.textMuted, marginTop: 2 },

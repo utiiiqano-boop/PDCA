@@ -18,6 +18,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
 import { getCompany, CompanyRow } from "@/services/companiesService";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/i18n/I18nProvider";
 import { theme } from "@/theme";
 
 function fmtDate(iso: string): string {
@@ -31,16 +32,17 @@ function fmtDate(iso: string): string {
   }
 }
 
-function greeting(): string {
+function greetingKey(): "greetingMorning" | "greetingAfternoon" | "greetingEvening" {
   const h = new Date().getHours();
-  if (h < 12) return "Bonjour";
-  if (h < 18) return "Bon après-midi";
-  return "Bonsoir";
+  if (h < 12) return "greetingMorning";
+  if (h < 18) return "greetingAfternoon";
+  return "greetingEvening";
 }
 
 export default function Dashboard() {
   // ── 1. HOOKS ──────────────────────────────────────────
   const { profile, signOut } = useAuth();
+  const { t: tr } = useTranslation();
   const [data, setData] = useState<PDCAWithActions[]>([]);
   const [company, setCompany] = useState<CompanyRow | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,10 +180,10 @@ export default function Dashboard() {
       {/* ── Greeting ───────────────────────────────── */}
       <View style={styles.greetingWrap}>
         <Text style={styles.greeting}>
-          {greeting()}, {profile?.full_name?.split(" ")[0] ?? ""}
+          {tr(`dashboard.${greetingKey()}`)}, {profile?.full_name?.split(" ")[0] ?? ""}
         </Text>
         <Text style={styles.greetingSub}>
-          Voici l'état de vos PDCA aujourd'hui
+          {tr("dashboard.todayStatus")}
         </Text>
       </View>
 
@@ -189,7 +191,7 @@ export default function Dashboard() {
       <Card style={styles.heroCard}>
         <View style={styles.heroTop}>
           <View>
-            <Text style={styles.heroLabel}>PDCA TOTAL</Text>
+            <Text style={styles.heroLabel}>{tr("dashboard.totalPDCA")}</Text>
             <Text style={styles.heroValue}>{stats.pdcaTotal}</Text>
           </View>
           <View style={styles.heroIcon}>
@@ -202,22 +204,22 @@ export default function Dashboard() {
         <View style={styles.heroGrid}>
           <HeroStat
             n={stats.pdcaOpen}
-            l="Ouverts"
+            l={tr("dashboard.open")}
             color={theme.colors.info}
           />
           <HeroStat
             n={stats.pdcaInProgress}
-            l="En cours"
+            l={tr("dashboard.inProgress")}
             color={theme.colors.warning}
           />
           <HeroStat
             n={stats.pdcaCompleted}
-            l="Terminés"
+            l={tr("dashboard.completed")}
             color={theme.colors.success}
           />
           <HeroStat
             n={stats.actionsOverdue}
-            l="En retard"
+            l={tr("dashboard.overdue")}
             color={theme.colors.danger}
           />
         </View>
