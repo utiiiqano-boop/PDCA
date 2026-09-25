@@ -1,10 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Card } from "@/components/Card";
@@ -34,8 +29,8 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
   const { toast, confirm, alert } = useUI();
   const [newLabel, setNewLabel] = useState("");
   const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Options are already sorted by sort_order (from the service)
   const sorted = useMemo(
     () => [...options].sort((a, b) => a.sort_order - b.sort_order),
     [options],
@@ -70,15 +65,19 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
 
   const handleDelete = async (id: string) => {
     const opt = options.find((o) => o.id === id);
+    // 1) Confirmation — pas de spinner sur la ligne pendant ce temps
     const ok = await confirm({
       title: "Supprimer définitivement ?",
       message: opt
-        ? `"${opt.label}" sera retiré de la liste. Si des PDCA l'utilisent encore, la suppression sera refusée — dans ce cas, désactivez-le plutôt.`
+        ? `"${opt.label}" sera retiré de la liste. Si des PDCA l'utilisent, la suppression sera refusée — dans ce cas, désactivez-le plutôt.`
         : "Cette option sera retirée de la liste.",
       confirmLabel: "Supprimer",
       destructive: true,
     });
     if (!ok) return;
+
+    // 2) Maintenant on passe la ligne en mode "loading"
+    setDeletingId(id);
     try {
       await deleteOption(kind, id);
       toast.info("Option supprimée");
@@ -88,6 +87,8 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
         title: "Suppression refusée",
         message: e instanceof Error ? e.message : "Erreur",
       });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -162,14 +163,8 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
           loading={creating}
           disabled={!newLabel.trim()}
         />
-
         <View style={{ height: 8 }} />
-
-        <ImportCsvButton
-          kind={kind}
-          companyId={companyId}
-          onImported={onChanged}
-        />
+        <ImportCsvButton kind={kind} companyId={companyId} onImported={onChanged} />
       </Card>
 
       <View style={styles.statsRow}>
@@ -190,6 +185,7 @@ export function OptionAdminPanel({ kind, companyId, options, onChanged }: Props)
               option={item}
               isFirst={index === 0}
               isLast={index === sorted.length - 1}
+              deleting={deletingId === item.id}
               onRename={handleRename}
               onToggleActive={handleToggleActive}
               onDelete={handleDelete}
@@ -212,9 +208,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 8,
   },
-  statsRow: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
+  statsRow: { paddingHorizontal: 16, paddingBottom: 8 },
   stats: { fontSize: 12, color: theme.colors.textMuted },
 });

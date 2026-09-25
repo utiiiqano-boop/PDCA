@@ -231,7 +231,7 @@ export function useUI(): UIContext {
 // ---------- Styles ----------
 const styles = StyleSheet.create({
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(15,23,42,0.55)",
     alignItems: "center",
     justifyContent: "center",
@@ -240,6 +240,7 @@ const styles = StyleSheet.create({
   dialog: {
     width: "100%",
     maxWidth: 420,
+    alignSelf: "center",
     backgroundColor: theme.colors.surface,
     borderRadius: theme.radius.lg,
     padding: 20,

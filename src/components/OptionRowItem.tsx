@@ -14,6 +14,7 @@ interface Props {
   option: CompanyOption;
   isFirst: boolean;
   isLast: boolean;
+  deleting?: boolean;
   onRename: (id: string, newLabel: string) => Promise<void>;
   onToggleActive: (id: string, active: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -25,6 +26,7 @@ export function OptionRowItem({
   option,
   isFirst,
   isLast,
+  deleting = false,
   onRename,
   onToggleActive,
   onDelete,
@@ -38,6 +40,8 @@ export function OptionRowItem({
   useEffect(() => {
     setDraft(option.label);
   }, [option.label]);
+
+  const isLocked = busy || deleting;
 
   const save = async () => {
     const trimmed = draft.trim();
@@ -72,12 +76,9 @@ export function OptionRowItem({
   };
 
   const doDelete = async () => {
-    try {
-      setBusy(true);
-      await onDelete(option.id);
-    } finally {
-      setBusy(false);
-    }
+    // ⚠️ On ne met PAS busy ici : le parent affiche une confirmation d'abord.
+    // Le spinner n'apparaîtra que si le parent passe `deleting={true}`.
+    await onDelete(option.id);
   };
 
   const doMoveUp = async () => {
@@ -104,16 +105,16 @@ export function OptionRowItem({
       <View style={styles.reorderCol}>
         <Pressable
           onPress={doMoveUp}
-          disabled={isFirst || busy}
-          style={[styles.reorderBtn, (isFirst || busy) && styles.reorderBtnDisabled]}
+          disabled={isFirst || isLocked}
+          style={[styles.reorderBtn, (isFirst || isLocked) && styles.reorderBtnDisabled]}
           hitSlop={4}
         >
           <Text style={styles.reorderTxt}>▲</Text>
         </Pressable>
         <Pressable
           onPress={doMoveDown}
-          disabled={isLast || busy}
-          style={[styles.reorderBtn, (isLast || busy) && styles.reorderBtnDisabled]}
+          disabled={isLast || isLocked}
+          style={[styles.reorderBtn, (isLast || isLocked) && styles.reorderBtnDisabled]}
           hitSlop={4}
         >
           <Text style={styles.reorderTxt}>▼</Text>
@@ -142,7 +143,6 @@ export function OptionRowItem({
               disabled={busy}
               style={styles.okBtn}
               hitSlop={8}
-              accessibilityLabel="Valider"
             >
               <Text style={styles.okTxt}>✓</Text>
             </Pressable>
@@ -151,7 +151,6 @@ export function OptionRowItem({
               disabled={busy}
               style={styles.cancelBtn}
               hitSlop={8}
-              accessibilityLabel="Annuler"
             >
               <Text style={styles.cancelTxt}>✕</Text>
             </Pressable>
@@ -159,7 +158,7 @@ export function OptionRowItem({
         ) : (
           <Pressable
             onPress={() => setEditing(true)}
-            disabled={busy}
+            disabled={isLocked}
             style={styles.labelPressable}
           >
             <Text
@@ -177,16 +176,14 @@ export function OptionRowItem({
 
       {/* Actions */}
       <View style={styles.actionsCol}>
-        {busy ? (
+        {busy || deleting ? (
           <ActivityIndicator color={theme.colors.primary} size="small" />
         ) : (
           <>
-            {/* Statut — un simple rond coloré, toujours rendu */}
             <Pressable
               onPress={toggleActive}
               style={styles.statusBtn}
               hitSlop={6}
-              accessibilityLabel={option.active ? "Désactiver" : "Activer"}
             >
               <View
                 style={[
@@ -196,12 +193,10 @@ export function OptionRowItem({
               />
             </Pressable>
 
-            {/* Supprimer — un ✕ texte, toujours rendu */}
             <Pressable
               onPress={doDelete}
               style={styles.deleteBtn}
               hitSlop={6}
-              accessibilityLabel="Supprimer"
             >
               <Text style={styles.deleteTxt}>✕</Text>
             </Pressable>
@@ -223,12 +218,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     minHeight: 56,
   },
-  rowInactive: {
-    backgroundColor: "#f9fafb",
-    opacity: 0.75,
-  },
-
-  // Reorder column
+  rowInactive: { backgroundColor: "#f9fafb", opacity: 0.75 },
   reorderCol: {
     width: 32,
     alignItems: "center",
@@ -246,33 +236,15 @@ const styles = StyleSheet.create({
   },
   reorderBtnDisabled: { opacity: 0.3 },
   reorderTxt: { fontSize: 11, color: theme.colors.text, fontWeight: "700" },
-
-  // Middle (label or input)
-  middle: {
-    flex: 1,
-    minWidth: 0,
-    marginRight: 8,
-  },
-  labelPressable: {
-    paddingVertical: 4,
-  },
-  label: {
-    fontSize: 15,
-    color: theme.colors.text,
-    fontWeight: "600",
-  },
+  middle: { flex: 1, minWidth: 0, marginRight: 8 },
+  labelPressable: { paddingVertical: 4 },
+  label: { fontSize: 15, color: theme.colors.text, fontWeight: "600" },
   labelInactive: {
     textDecorationLine: "line-through",
     color: theme.colors.textMuted,
   },
   subLabel: { fontSize: 10, color: theme.colors.textMuted, marginTop: 1 },
-
-  // Edit mode
-  editRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
+  editRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   input: {
     flex: 1,
     fontSize: 15,
@@ -303,8 +275,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cancelTxt: { color: "#1f2937", fontWeight: "900", fontSize: 14 },
-
-  // Actions
   actionsCol: {
     flexDirection: "row",
     alignItems: "center",
