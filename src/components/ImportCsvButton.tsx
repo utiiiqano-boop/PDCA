@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   rowLabel: { fontSize: 13, color: theme.colors.text, flex: 1 },
-  rowOrder: { fontSize: 12, color: theme.colors.textMuted, marginLeft: 8 },
+  rowOrder: { fontSize: 12, color: theme.colors.textMuted, marginStart: 8 },
   moreTxt: {
     fontSize: 12,
     fontStyle: "italic",

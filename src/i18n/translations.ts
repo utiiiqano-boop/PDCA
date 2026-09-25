@@ -501,8 +501,8 @@ const fr = {
   rapportHebdo: {
     title: "Rapport hebdomadaire",
     subtitle: "Synthèse de la semaine · vue direction",
-    prev: "‹ Précédent",
-    next: "Suivant ›",
+    prev: "Précédent",
+    next: "Suivant",
     week: "Semaine",
     generated: "Rapport généré",
     exportFailed: "Échec de l'export",
@@ -1153,8 +1153,8 @@ const en: typeof fr = {
   rapportHebdo: {
     title: "Weekly report",
     subtitle: "Weekly summary · management view",
-    prev: "‹ Previous",
-    next: "Next ›",
+    prev: "Previous",
+    next: "Next",
     week: "Week",
     generated: "Report generated",
     exportFailed: "Export failed",
@@ -1805,8 +1805,8 @@ const ar: typeof fr = {
   rapportHebdo: {
     title: "التقرير الأسبوعي",
     subtitle: "ملخص الأسبوع · عرض الإدارة",
-    prev: "‹ السابق",
-    next: "التالي ›",
+    prev: "السابق",
+    next: "التالي",
     week: "الأسبوع",
     generated: "تم إنشاء التقرير",
     exportFailed: "فشل التصدير",

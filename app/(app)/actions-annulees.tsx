@@ -328,8 +328,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     padding: theme.spacing(3),
     marginBottom: theme.spacing(3),
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.danger,
+    borderStartWidth: 3,
+    borderStartColor: theme.colors.danger,
   },
   actionLbl: {
     fontSize: 10,

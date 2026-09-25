@@ -47,7 +47,7 @@ function fmtRange(a: Date, b: Date, locale: string): string {
 export default function RapportHebdo() {
   const { profile } = useAuth();
   const { toast, alert } = useUI();
-  const { t: tr, language } = useTranslation();
+  const { t: tr, language, isRTL } = useTranslation();
   const locale = LOCALES[language] ?? "fr-FR";
   const [items, setItems] = useState<PDCAWithActions[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,7 +178,7 @@ export default function RapportHebdo() {
           onPress={() => setWeekOffset((w) => w - 1)}
           style={styles.navBtn}
         >
-          <Text style={styles.navTxt}>{tr("rapportHebdo.prev")}</Text>
+          <Text style={styles.navTxt}>{isRTL ? `› ${tr("rapportHebdo.prev")}` : `‹ ${tr("rapportHebdo.prev")}`}</Text>
         </Pressable>
         <View style={styles.rangeWrap}>
           <Text style={styles.rangeLbl}>{tr("rapportHebdo.week")}</Text>
@@ -189,7 +189,7 @@ export default function RapportHebdo() {
           style={[styles.navBtn, weekOffset === 0 && { opacity: 0.3 }]}
           disabled={weekOffset === 0}
         >
-          <Text style={styles.navTxt}>{tr("rapportHebdo.next")}</Text>
+          <Text style={styles.navTxt}>{isRTL ? `${tr("rapportHebdo.next")} ‹` : `${tr("rapportHebdo.next")} ›`}</Text>
         </Pressable>
       </View>
 

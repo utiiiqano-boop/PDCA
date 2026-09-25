@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  chips: { gap: 8, paddingRight: 16 },
+  chips: { gap: 8, paddingEnd: 16 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,

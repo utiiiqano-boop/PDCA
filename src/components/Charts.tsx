@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     width: 110,
     fontSize: 13,
     color: theme.colors.text,
-    paddingRight: 8,
+    paddingEnd: 8,
   },
   track: {
     flex: 1,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 6,
   },
-  legendDot: { width: 12, height: 12, borderRadius: 6, marginRight: 8 },
+  legendDot: { width: 12, height: 12, borderRadius: 6, marginEnd: 8 },
   legendLabel: { flex: 1, fontSize: 13, color: theme.colors.text },
   legendValue: { fontSize: 13, color: theme.colors.textMuted },
   tile: {

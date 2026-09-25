@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     width: 32,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 4,
+    marginEnd: 4,
   },
   reorderBtn: {
     width: 28,
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
   },
   reorderBtnDisabled: { opacity: 0.3 },
   reorderTxt: { fontSize: 11, color: theme.colors.text, fontWeight: "700" },
-  middle: { flex: 1, minWidth: 0, marginRight: 8 },
+  middle: { flex: 1, minWidth: 0, marginEnd: 8 },
   labelPressable: { paddingVertical: 4 },
   label: { fontSize: 15, color: theme.colors.text, fontWeight: "600" },
   labelInactive: {

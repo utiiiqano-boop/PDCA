@@ -508,9 +508,9 @@ const styles = StyleSheet.create({
   // ── Blocks ────────────────────────────────────
   block: {
     marginBottom: theme.spacing(3),
-    paddingLeft: theme.spacing(3),
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.divider,
+    paddingStart: theme.spacing(3),
+    borderStartWidth: 3,
+    borderStartColor: theme.colors.divider,
   },
   blockLabel: {
     fontSize: 10,
