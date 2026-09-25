@@ -17,3 +17,5 @@ supabase/.temp/
 firebase-key.json
 *firebase-adminsdk*.json
 firebase-key.json
+yarn.lock
+package-lock.json
