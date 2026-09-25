@@ -2,37 +2,74 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { theme } from "@/theme";
 import type { ActionStatus, Priority } from "@/types/database";
-import { PRIORITY_COLORS } from "@/constants/options";
 
 const STATUS_LABELS: Record<ActionStatus, string> = {
-  OPEN: "Ouvert", IN_PROGRESS: "En cours", COMPLETED: "Terminé",
-  CANCELLED: "Annulé", OVERDUE: "En retard",
+  OPEN: "Ouvert",
+  IN_PROGRESS: "En cours",
+  COMPLETED: "Terminé",
+  CANCELLED: "Annulé",
+  OVERDUE: "En retard",
 };
-const STATUS_COLORS: Record<ActionStatus, string> = {
-  OPEN: theme.colors.info, IN_PROGRESS: theme.colors.warning,
-  COMPLETED: theme.colors.success, CANCELLED: theme.colors.textMuted,
-  OVERDUE: theme.colors.danger,
+
+const STATUS_COLORS: Record<ActionStatus, { fg: string; bg: string }> = {
+  OPEN:        { fg: theme.colors.info,    bg: theme.colors.infoSoft },
+  IN_PROGRESS: { fg: theme.colors.warning, bg: theme.colors.warningSoft },
+  COMPLETED:   { fg: theme.colors.success, bg: theme.colors.successSoft },
+  CANCELLED:   { fg: theme.colors.textMuted, bg: theme.colors.neutralSoft },
+  OVERDUE:     { fg: theme.colors.danger,  bg: theme.colors.dangerSoft },
+};
+
+const PRIORITY_LABELS: Record<Priority, string> = {
+  LOW: "Faible",
+  MEDIUM: "Moyenne",
+  HIGH: "Élevée",
+};
+
+const PRIORITY_COLORS: Record<Priority, { fg: string; bg: string }> = {
+  LOW:    { fg: theme.colors.success, bg: theme.colors.successSoft },
+  MEDIUM: { fg: "#B45309",            bg: theme.colors.warningSoft },
+  HIGH:   { fg: theme.colors.danger,  bg: theme.colors.dangerSoft },
 };
 
 export function StatusBadge({ status }: { status: ActionStatus }) {
+  const c = STATUS_COLORS[status];
   return (
-    <View style={[styles.badge, { backgroundColor: STATUS_COLORS[status] + "22", borderColor: STATUS_COLORS[status] }]}>
-      <Text style={[styles.txt, { color: STATUS_COLORS[status] }]}>{STATUS_LABELS[status]}</Text>
+    <View style={[styles.badge, { backgroundColor: c.bg }]}>
+      <View style={[styles.dot, { backgroundColor: c.fg }]} />
+      <Text style={[styles.txt, { color: c.fg }]}>{STATUS_LABELS[status]}</Text>
     </View>
   );
 }
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
   const c = PRIORITY_COLORS[priority];
-  const label = priority === "LOW" ? "Faible" : priority === "MEDIUM" ? "Moyenne" : "Élevée";
   return (
-    <View style={[styles.badge, { backgroundColor: c + "22", borderColor: c }]}>
-      <Text style={[styles.txt, { color: c }]}>{label}</Text>
+    <View style={[styles.badge, { backgroundColor: c.bg }]}>
+      <View style={[styles.dot, { backgroundColor: c.fg }]} />
+      <Text style={[styles.txt, { color: c.fg }]}>{PRIORITY_LABELS[priority]}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1, alignSelf: "flex-start" },
-  txt: { fontSize: 12, fontWeight: "700" },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: theme.spacing(3),
+    paddingVertical: 5,
+    borderRadius: theme.radius.pill,
+    alignSelf: "flex-start",
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  txt: {
+    fontSize: theme.font.size.xs,
+    fontWeight: theme.font.weight.bold,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
 });

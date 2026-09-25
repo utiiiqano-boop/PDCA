@@ -27,15 +27,15 @@ const EVENT_LABELS: Record<string, string> = {
   PRIORITY_CHANGED: "Priorité modifiée",
 };
 
-const EVENT_COLORS: Record<string, string> = {
-  PDCA_CREATED: "#0f4c81",
-  PDCA_CANCELLED: "#dc2626",
-  ACTION_CREATED: "#0284c7",
-  ACTION_COMPLETED: "#16a34a",
-  ACTION_CANCELLED: "#dc2626",
-  PHASE_CHANGED: "#f59e0b",
-  PILOT_CHANGED: "#7c3aed",
-  DUE_DATE_CHANGED: "#f59e0b",
+const EVENT_COLORS: Record<string, { fg: string; bg: string }> = {
+  PDCA_CREATED:     { fg: theme.colors.primary, bg: theme.colors.primarySoft },
+  PDCA_CANCELLED:   { fg: theme.colors.danger,  bg: theme.colors.dangerSoft },
+  ACTION_CREATED:   { fg: theme.colors.info,    bg: theme.colors.infoSoft },
+  ACTION_COMPLETED: { fg: theme.colors.success, bg: theme.colors.successSoft },
+  ACTION_CANCELLED: { fg: theme.colors.danger,  bg: theme.colors.dangerSoft },
+  PHASE_CHANGED:    { fg: "#B45309",            bg: theme.colors.warningSoft },
+  PILOT_CHANGED:    { fg: "#7C3AED",            bg: "#EDE9FE" },
+  DUE_DATE_CHANGED: { fg: "#B45309",            bg: theme.colors.warningSoft },
 };
 
 const FILTERS = [
@@ -91,54 +91,75 @@ export default function HistoriqueScreen() {
   if (error) return <ErrorState message={error} />;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+    <View style={styles.container}>
+      {/* ── Header ───────────────────────────────── */}
       <View style={styles.header}>
         <Text style={styles.title}>Historique</Text>
         <Text style={styles.sub}>{filtered.length} événement(s)</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.chips}
-      >
-        {FILTERS.map((f) => {
-          const active = filter === f.key;
-          return (
-            <Pressable
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Text style={[styles.chipTxt, active && styles.chipTxtActive]}>
-                {f.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-      <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
+      {/* ── Filtres ──────────────────────────────── */}
+      <View style={styles.filtersWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContent}
+        >
+          {FILTERS.map((f) => {
+            const active = filter === f.key;
+            return (
+              <Pressable
+                key={f.key}
+                onPress={() => setFilter(f.key)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
+                <Text style={[styles.chipTxt, active && styles.chipTxtActive]}>
+                  {f.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* ── Export ───────────────────────────────── */}
+      <View style={styles.exportWrap}>
         <ExportButton
           filename="historique"
-          headers={["Date","Type","Ancienne valeur","Nouvelle valeur","Commentaire","PDCA"]}
-          rows={() => filtered.map((h) => [
-            fmt(h.created_at),
-            EVENT_LABELS[h.event_type] ?? h.event_type,
-            h.old_value ?? "",
-            h.new_value ?? "",
-            h.comment ?? "",
-            h.pdca_reference ?? "",
-          ])}
+          headers={[
+            "Date",
+            "Type",
+            "Ancienne valeur",
+            "Nouvelle valeur",
+            "Commentaire",
+            "PDCA",
+          ]}
+          rows={() =>
+            filtered.map((h) => [
+              fmt(h.created_at),
+              EVENT_LABELS[h.event_type] ?? h.event_type,
+              h.old_value ?? "",
+              h.new_value ?? "",
+              h.comment ?? "",
+              h.pdca_reference ?? "",
+            ])
+          }
         />
       </View>
+
+      {/* ── Liste ────────────────────────────────── */}
       {filtered.length === 0 ? (
         <EmptyState
           title="Aucun événement"
-          subtitle={filter === "ALL" ? undefined : "Aucun événement pour ce filtre."}
+          subtitle={
+            filter === "ALL"
+              ? undefined
+              : "Aucun événement pour ce filtre."
+          }
         />
       ) : (
         <FlatList<HistoryEntry>
-          contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
+          contentContainerStyle={styles.listContent}
           data={filtered}
           keyExtractor={(it: HistoryEntry) => it.id}
           refreshControl={
@@ -153,13 +174,22 @@ export default function HistoriqueScreen() {
           }
           renderItem={({ item }: { item: HistoryEntry }) => {
             const label = EVENT_LABELS[item.event_type] ?? item.event_type;
-            const color = EVENT_COLORS[item.event_type] ?? theme.colors.primary;
-            const hasChange = Boolean(item.old_value) || Boolean(item.new_value);
+            const colors =
+              EVENT_COLORS[item.event_type] ?? {
+                fg: theme.colors.primary,
+                bg: theme.colors.primarySoft,
+              };
+            const hasChange =
+              Boolean(item.old_value) || Boolean(item.new_value);
             return (
               <Card>
                 <View style={styles.eventHeader}>
-                  <View style={[styles.badge, { backgroundColor: color + "22", borderColor: color }]}>
-                    <Text style={[styles.badgeTxt, { color }]}>{label}</Text>
+                  <View
+                    style={[styles.badge, { backgroundColor: colors.bg }]}
+                  >
+                    <Text style={[styles.badgeTxt, { color: colors.fg }]}>
+                      {label}
+                    </Text>
                   </View>
                   <Text style={styles.date}>{fmt(item.created_at)}</Text>
                 </View>
@@ -187,46 +217,104 @@ export default function HistoriqueScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { padding: 16, paddingBottom: 8 },
-  title: { fontSize: 24, fontWeight: "800", color: theme.colors.text },
-  sub: { color: theme.colors.textMuted, marginTop: 4 },
+  container: { flex: 1, backgroundColor: theme.colors.bg },
 
-  chips: { gap: 8, paddingHorizontal: 16, paddingBottom: 12 },
+  header: {
+    paddingHorizontal: theme.spacing(4),
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(2),
+  },
+  title: {
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
+    color: theme.colors.text,
+  },
+  sub: {
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+    fontSize: theme.font.size.base,
+  },
+
+  // Filtres : hauteur fixe, padding vertical pour ne pas clipper
+  filtersWrap: {
+    height: 56,
+    justifyContent: "center",
+    backgroundColor: theme.colors.bg,
+  },
+  filtersContent: {
+    paddingHorizontal: theme.spacing(4),
+    gap: theme.spacing(2),
+    alignItems: "center",
+  },
   chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    paddingHorizontal: theme.spacing(3),
+    paddingVertical: theme.spacing(2),
+    borderRadius: theme.radius.pill,
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
+    height: 36,
+    justifyContent: "center",
   },
   chipActive: {
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
-  chipTxt: { fontSize: 13, color: theme.colors.text },
-  chipTxtActive: { color: "#fff", fontWeight: "700" },
+  chipTxt: {
+    fontSize: theme.font.size.sm,
+    color: theme.colors.text,
+    fontWeight: theme.font.weight.semibold,
+  },
+  chipTxtActive: { color: "#fff" },
+
+  exportWrap: {
+    paddingHorizontal: theme.spacing(4),
+    paddingBottom: theme.spacing(3),
+  },
+
+  listContent: {
+    paddingHorizontal: theme.spacing(4),
+    paddingBottom: 60,
+  },
 
   eventHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: theme.spacing(3),
   },
   badge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: theme.spacing(3),
     paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
+    borderRadius: theme.radius.pill,
   },
-  badgeTxt: { fontSize: 12, fontWeight: "700" },
-  date: { fontSize: 11, color: theme.colors.textMuted },
-  change: { fontSize: 14, color: theme.colors.text, marginTop: 4, fontWeight: "600" },
-  comment: {
-    fontSize: 12,
+  badgeTxt: {
+    fontSize: theme.font.size.xs,
+    fontWeight: theme.font.weight.bold,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  date: {
+    fontSize: theme.font.size.xs,
     color: theme.colors.textMuted,
-    marginTop: 6,
+    fontWeight: theme.font.weight.medium,
+  },
+  change: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.text,
+    marginTop: theme.spacing(1),
+    fontWeight: theme.font.weight.semibold,
+  },
+  comment: {
+    fontSize: theme.font.size.sm,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing(2),
     fontStyle: "italic",
   },
-  ref: { fontSize: 11, color: theme.colors.primary, marginTop: 6 },
+  ref: {
+    fontSize: theme.font.size.xs,
+    color: theme.colors.primary,
+    marginTop: theme.spacing(2),
+    fontWeight: theme.font.weight.semibold,
+  },
 });

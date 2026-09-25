@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { router } from "expo-router";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
@@ -37,74 +44,137 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1 }}
+      style={styles.root}
     >
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>PDCA</Text>
-        <Text style={styles.subtitle}>Gestion industrielle — Connexion</Text>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.hero}>
+          <View style={styles.logoBox}>
+            <Text style={styles.logoText}>P</Text>
+          </View>
+          <Text style={styles.title}>PDCA</Text>
+          <Text style={styles.subtitle}>Gestion industrielle</Text>
+        </View>
 
-        <Input
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          required
-        />
-        <Input
-          label="Mot de passe"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          required
-        />
-        {err ? <Text style={styles.err}>{err}</Text> : null}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Connexion</Text>
 
-        <Button label="Se connecter" onPress={onSubmit} loading={loading} />
+          <Input
+            label="Email"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            placeholder="vous@entreprise.com"
+            required
+          />
+          <Input
+            label="Mot de passe"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            placeholder="••••••••"
+            required
+          />
 
-        <Text
-          style={styles.link}
-          onPress={() => router.push("/(auth)/forgot-password")}
-        >
-          Mot de passe oublié ?
-        </Text>
+          {err ? <Text style={styles.err}>{err}</Text> : null}
 
-        <Text
-          style={styles.link}
-          onPress={() => router.push("/(auth)/signup")}
-        >
-          Créer un compte
-        </Text>
+          <Button label="Se connecter" onPress={onSubmit} loading={loading} />
+
+          <Text
+            style={styles.link}
+            onPress={() => router.push("/(auth)/forgot-password")}
+          >
+            Mot de passe oublié ?
+          </Text>
+        </View>
+
+        <View style={styles.signupWrap}>
+          <Text style={styles.signupLabel}>Pas encore de compte ?</Text>
+          <Button
+            label="Créer une entreprise"
+            variant="secondary"
+            onPress={() => router.push("/(auth)/signup")}
+          />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: theme.colors.bg },
   container: {
-    padding: 24,
+    padding: theme.spacing(6),
     flexGrow: 1,
     justifyContent: "center",
-    backgroundColor: theme.colors.bg,
+    maxWidth: 480,
+    width: "100%",
+    alignSelf: "center",
+  },
+  hero: { alignItems: "center", marginBottom: theme.spacing(8) },
+  logoBox: {
+    width: 72,
+    height: 72,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: theme.spacing(4),
+    ...theme.shadow.md,
+  },
+  logoText: {
+    fontSize: 40,
+    fontWeight: theme.font.weight.black,
+    color: "#fff",
+    letterSpacing: 1,
   },
   title: {
-    fontSize: 34,
-    fontWeight: "800",
+    fontSize: theme.font.size["3xl"],
+    fontWeight: theme.font.weight.black,
     color: theme.colors.primary,
-    textAlign: "center",
+    letterSpacing: 2,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: theme.font.size.base,
     color: theme.colors.textMuted,
-    textAlign: "center",
-    marginBottom: 32,
+    marginTop: theme.spacing(1),
+    letterSpacing: 1,
   },
-  err: { color: theme.colors.danger, marginBottom: 12, textAlign: "center" },
+  card: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.xl,
+    padding: theme.spacing(6),
+    borderWidth: 1,
+    borderColor: theme.colors.divider,
+    ...theme.shadow.md,
+  },
+  cardTitle: {
+    fontSize: theme.font.size.xl,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing(6),
+  },
+  err: {
+    color: theme.colors.danger,
+    fontSize: theme.font.size.sm,
+    marginBottom: theme.spacing(3),
+    textAlign: "center",
+    fontWeight: theme.font.weight.medium,
+  },
   link: {
     color: theme.colors.primary,
     textAlign: "center",
-    marginTop: 20,
-    fontWeight: "600",
-    textDecorationLine: "underline",
+    marginTop: theme.spacing(5),
+    fontWeight: theme.font.weight.semibold,
+    fontSize: theme.font.size.base,
+  },
+  signupWrap: { marginTop: theme.spacing(6), alignItems: "center" },
+  signupLabel: {
+    color: theme.colors.textMuted,
+    marginBottom: theme.spacing(3),
+    fontSize: theme.font.size.base,
   },
 });

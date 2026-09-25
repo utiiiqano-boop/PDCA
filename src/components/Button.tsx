@@ -1,29 +1,42 @@
 import React, { forwardRef } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import { theme } from "@/theme";
 
-type Variant = "primary" | "secondary" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "success";
+type Size = "sm" | "md" | "lg";
 
 interface Props {
   label: string;
   onPress: () => void;
   variant?: Variant;
+  size?: Size;
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  fullWidth?: boolean;
 }
 
 export const Button = forwardRef<View, Props>(function Button(
-  { label, onPress, variant = "primary", loading, disabled, style },
+  {
+    label,
+    onPress,
+    variant = "primary",
+    size = "md",
+    loading,
+    disabled,
+    style,
+    fullWidth = true,
+  },
   ref,
 ) {
-  const bg =
-    variant === "primary"
-      ? theme.colors.primary
-      : variant === "danger"
-        ? theme.colors.danger
-        : theme.colors.surface;
-  const fg = variant === "secondary" ? theme.colors.text : "#fff";
+  const isDisabled = disabled || loading;
 
   return (
     <Pressable
@@ -31,31 +44,82 @@ export const Button = forwardRef<View, Props>(function Button(
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      disabled={disabled || loading}
+      disabled={isDisabled}
       style={({ pressed }) => [
-        styles.btn,
-        { backgroundColor: bg, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
-        variant === "secondary" && styles.outline,
+        styles.base,
+        sizeStyles[size],
+        variantStyles[variant],
+        fullWidth && styles.fullWidth,
+        isDisabled && styles.disabled,
+        pressed && !isDisabled && styles.pressed,
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={fg} />
+        <ActivityIndicator
+          color={variant === "secondary" || variant === "ghost" ? theme.colors.primary : "#fff"}
+        />
       ) : (
-        <Text style={[styles.txt, { color: fg }]}>{label}</Text>
+        <Text
+          style={[
+            styles.txt,
+            sizeTextStyles[size],
+            variant === "secondary" || variant === "ghost"
+              ? styles.txtDark
+              : styles.txtLight,
+          ]}
+        >
+          {label}
+        </Text>
       )}
     </Pressable>
   );
 });
 
 const styles = StyleSheet.create({
-  btn: {
-    minHeight: 48,
-    paddingHorizontal: 16,
-    borderRadius: theme.radius.md,
+  base: {
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: theme.radius.md,
+    minHeight: theme.size.buttonMinHeight,
+    paddingHorizontal: theme.spacing(4),
   },
-  outline: { borderWidth: 1, borderColor: theme.colors.border },
-  txt: { fontSize: 16, fontWeight: "600" },
+  fullWidth: { width: "100%" },
+  disabled: { opacity: 0.5 },
+  pressed: { opacity: 0.85 },
+  txt: { fontWeight: theme.font.weight.semibold, letterSpacing: 0.2 },
+  txtLight: { color: "#fff" },
+  txtDark: { color: theme.colors.primary },
 });
+
+const sizeStyles: Record<Size, ViewStyle> = {
+  sm: { minHeight: 38, paddingHorizontal: theme.spacing(3) },
+  md: { minHeight: 48, paddingHorizontal: theme.spacing(4) },
+  lg: { minHeight: 54, paddingHorizontal: theme.spacing(5) },
+};
+
+const sizeTextStyles = StyleSheet.create({
+  sm: { fontSize: theme.font.size.sm, fontWeight: theme.font.weight.semibold },
+  md: { fontSize: theme.font.size.base, fontWeight: theme.font.weight.semibold },
+  lg: { fontSize: theme.font.size.md, fontWeight: theme.font.weight.bold },
+});
+
+const variantStyles: Record<Variant, ViewStyle> = {
+  primary: {
+    backgroundColor: theme.colors.primary,
+  },
+  secondary: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.borderStrong,
+  },
+  ghost: {
+    backgroundColor: "transparent",
+  },
+  danger: {
+    backgroundColor: theme.colors.danger,
+  },
+  success: {
+    backgroundColor: theme.colors.success,
+  },
+};
