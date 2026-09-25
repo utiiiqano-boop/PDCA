@@ -53,8 +53,6 @@ const PRIORITIES: { value: Priority; label: string }[] = [
 export default function NewPDCA() {
   const { session } = useAuth();
   const { alert, toast } = useUI();
-
-  // Load configurable options from Supabase
   const { lines, departments, pilots, defectTypes, loading: optsLoading } =
     useCompanyOptions();
 
@@ -84,7 +82,6 @@ export default function NewPDCA() {
   const pilotLabels = useMemo(() => pilots.map((p) => p.label), [pilots]);
   const defectLabels = useMemo(() => defectTypes.map((d) => d.label), [defectTypes]);
 
-  // Reset form when screen gains focus
   useFocusEffect(
     React.useCallback(() => {
       setSubject("");
@@ -210,26 +207,32 @@ export default function NewPDCA() {
 
   if (optsLoading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+      <View style={styles.centerWrap}>
         <ActivityIndicator color={theme.colors.primary} size="large" />
-        <Text style={{ marginTop: 12, color: theme.colors.textMuted }}>
-          Chargement de la configuration…
-        </Text>
+        <Text style={styles.loadingTxt}>Chargement de la configuration…</Text>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Nouveau PDCA</Text>
+        {/* ── Header ───────────────────────────────────── */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Nouveau PDCA</Text>
+          <Text style={styles.subtitle}>
+            Remplissez les informations du cycle Plan-Do-Check-Act
+          </Text>
+        </View>
 
+        {/* ── Section 1 : Informations générales ──────── */}
+        <SectionLabel index={1} label="Informations générales" />
         <Card>
           <Input
             label="Sujet / Non-conformité"
@@ -237,13 +240,22 @@ export default function NewPDCA() {
             onChangeText={setSubject}
             required
             error={errors.subject}
+            placeholder="Ex : Usure prématurée roulement F01"
           />
           <Input
             label="Description de l'écart"
             value={description}
             onChangeText={setDescription}
             multiline
+            placeholder="Décrivez le problème observé…"
+            hint="Optionnel — détail du constat"
+            containerStyle={{ marginBottom: theme.spacing(3) }}
           />
+        </Card>
+
+        {/* ── Section 2 : Classement ─────────────────── */}
+        <SectionLabel index={2} label="Classement" />
+        <Card>
           <Select
             label="Ligne / Poste"
             value={line}
@@ -261,6 +273,12 @@ export default function NewPDCA() {
               error={errors.lineOther}
             />
           )}
+          <Select
+            label="Département"
+            value={department}
+            options={deptLabels}
+            onChange={setDepartment}
+          />
           <Select
             label="Type de défaut"
             value={defectType}
@@ -280,31 +298,37 @@ export default function NewPDCA() {
             options={priorityLabels}
             onChange={(l) => setPriority(priorityFromLabel(l))}
           />
-          <Select
-            label="Département"
-            value={department}
-            options={deptLabels}
-            onChange={setDepartment}
-          />
         </Card>
 
-        <Text style={styles.section}>Actions</Text>
-        {actionsForDisplay.length === 0 && (
-          <Text style={{ color: theme.colors.textMuted, marginBottom: 8 }}>
-            Aucune action. Ajoutez-en au moins une.
-          </Text>
-        )}
+        {/* ── Section 3 : Actions ────────────────────── */}
+        <SectionLabel
+          index={3}
+          label="Actions"
+          badge={actions.length > 0 ? String(actions.length) : undefined}
+        />
 
-        {actionsForDisplay.map((a, i) => (
-          <ActionCard
-            key={a.id}
-            index={i}
-            action={a}
-            priority={priority}
-            onEdit={() => setEditing(actions[i]!)}
-            onDelete={() => setActions((p) => p.filter((_, idx) => idx !== i))}
-          />
-        ))}
+        {actionsForDisplay.length === 0 ? (
+          <Card>
+            <View style={styles.emptyActions}>
+              <Text style={styles.emptyActionsIcon}>📝</Text>
+              <Text style={styles.emptyActionsTitle}>Aucune action</Text>
+              <Text style={styles.emptyActionsTxt}>
+                Ajoutez au moins une action pour ce PDCA.
+              </Text>
+            </View>
+          </Card>
+        ) : (
+          actionsForDisplay.map((a, i) => (
+            <ActionCard
+              key={a.id}
+              index={i}
+              action={a}
+              priority={priority}
+              onEdit={() => setEditing(actions[i]!)}
+              onDelete={() => setActions((p) => p.filter((_, idx) => idx !== i))}
+            />
+          ))
+        )}
 
         {errors.actions ? <Text style={styles.err}>{errors.actions}</Text> : null}
 
@@ -312,133 +336,238 @@ export default function NewPDCA() {
           label="+ Ajouter une action"
           variant="secondary"
           onPress={() => setEditing(emptyAction())}
-          style={{ marginBottom: 16 }}
+          style={{ marginTop: theme.spacing(1) }}
         />
 
+        {/* ── Form action (dans une card inline) ─────── */}
         {editing && (
-          <Card>
-            <Text style={styles.cardTitle}>
-              {actions.find((a) => a.tempId === editing.tempId)
-                ? "Modifier l'action"
-                : "Nouvelle action"}
-            </Text>
-
-            <Input
-              label="Action"
-              value={editing.action}
-              required
-              error={errors.action}
-              onChangeText={(t) => setEditing({ ...editing, action: t })}
-              multiline
-            />
-
-            <Select
-              label="Pilote"
-              value={pilotIsOther ? "Autre" : editing.pilot_name}
-              options={pilotLabels}
-              required
-              error={errors.pilot_name}
-              onChange={(v) => {
-                const isOther = v === "Autre";
-                setPilotIsOther(isOther);
-                if (!isOther) {
-                  setPilotOther("");
-                  setEditing({ ...editing, pilot_name: v });
-                } else {
-                  setEditing({ ...editing, pilot_name: "Autre" });
-                }
-              }}
-            />
-            {pilotIsOther && (
-              <Input
-                label="Précisez le pilote"
-                value={pilotOther}
-                onChangeText={(text) => {
-                  setPilotOther(text);
-                  setEditing({
-                    ...editing,
-                    pilot_name: text.trim() || "Autre",
-                  });
-                }}
-                required
-              />
-            )}
-
-            <DateField
-              label="Date ouverture"
-              value={editing.opening_date}
-              required
-              onChange={(v) =>
-                setEditing({ ...editing, opening_date: v ?? todayISO() })
+          <View style={{ marginTop: theme.spacing(4) }}>
+            <SectionLabel
+              label={
+                actions.find((a) => a.tempId === editing.tempId)
+                  ? "Modifier l'action"
+                  : "Nouvelle action"
               }
             />
-            <DateField
-              label="Date de fin"
-              value={editing.due_date}
-              error={errors.due_date}
-              onChange={(v) => setEditing({ ...editing, due_date: v })}
-            />
-
-            <Text style={styles.label}>Phase PDCA</Text>
-            <PDCAProgressBar
-              phase={editing.phase}
-              onSelect={(p: PDCAPhase) => setEditing({ ...editing, phase: p })}
-            />
-
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-              <Button
-                label="Annuler"
-                variant="secondary"
-                onPress={() => setEditing(null)}
-                style={{ flex: 1 }}
+            <Card>
+              <Input
+                label="Action"
+                value={editing.action}
+                required
+                error={errors.action}
+                onChangeText={(t) => setEditing({ ...editing, action: t })}
+                multiline
+                placeholder="Décrivez l'action corrective…"
               />
-              <Button
-                label="Valider l'action"
-                onPress={upsertAction}
-                style={{ flex: 1 }}
+
+              <Select
+                label="Pilote"
+                value={pilotIsOther ? "Autre" : editing.pilot_name}
+                options={pilotLabels}
+                required
+                error={errors.pilot_name}
+                onChange={(v) => {
+                  const isOther = v === "Autre";
+                  setPilotIsOther(isOther);
+                  if (!isOther) {
+                    setPilotOther("");
+                    setEditing({ ...editing, pilot_name: v });
+                  } else {
+                    setEditing({ ...editing, pilot_name: "Autre" });
+                  }
+                }}
               />
-            </View>
-          </Card>
+              {pilotIsOther && (
+                <Input
+                  label="Précisez le pilote"
+                  value={pilotOther}
+                  onChangeText={(text) => {
+                    setPilotOther(text);
+                    setEditing({
+                      ...editing,
+                      pilot_name: text.trim() || "Autre",
+                    });
+                  }}
+                  required
+                />
+              )}
+
+              <DateField
+                label="Date d'ouverture"
+                value={editing.opening_date}
+                required
+                onChange={(v) =>
+                  setEditing({ ...editing, opening_date: v ?? todayISO() })
+                }
+              />
+              <DateField
+                label="Date de fin"
+                value={editing.due_date}
+                error={errors.due_date}
+                onChange={(v) => setEditing({ ...editing, due_date: v })}
+              />
+
+              <Text style={styles.phaseLabel}>Phase PDCA</Text>
+              <PDCAProgressBar
+                phase={editing.phase}
+                onSelect={(p: PDCAPhase) => setEditing({ ...editing, phase: p })}
+              />
+
+              <View style={styles.editActions}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    label="Annuler"
+                    variant="secondary"
+                    onPress={() => setEditing(null)}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button label="Valider l'action" onPress={upsertAction} />
+                </View>
+              </View>
+            </Card>
+          </View>
         )}
 
-        <View style={{ height: 24 }} />
-        <Button label="Soumettre" onPress={onSubmit} loading={submitting} />
-        <View style={{ height: 8 }} />
+        {/* ── Actions finales ────────────────────────── */}
+        <View style={{ height: theme.spacing(6) }} />
+        <Button label="Soumettre le PDCA" onPress={onSubmit} loading={submitting} />
+        <View style={{ height: theme.spacing(2) }} />
         <Button label="Réinitialiser" variant="secondary" onPress={resetAll} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+function SectionLabel({
+  index,
+  label,
+  badge,
+}: {
+  index?: number;
+  label: string;
+  badge?: string;
+}) {
+  return (
+    <View style={styles.sectionLabelWrap}>
+      {index !== undefined ? (
+        <View style={styles.sectionBadge}>
+          <Text style={styles.sectionBadgeTxt}>{index}</Text>
+        </View>
+      ) : null}
+      <Text style={styles.sectionLabelTxt}>{label}</Text>
+      {badge ? (
+        <View style={styles.countBadge}>
+          <Text style={styles.countBadgeTxt}>{badge}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
+  root: { flex: 1, backgroundColor: theme.colors.bg },
+  centerWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: theme.colors.bg,
-    paddingBottom: 40,
+  },
+  loadingTxt: {
+    marginTop: theme.spacing(3),
+    color: theme.colors.textMuted,
+    fontSize: theme.font.size.base,
+  },
+  container: {
+    padding: theme.spacing(4),
+    paddingBottom: 60,
+  },
+  header: {
+    marginBottom: theme.spacing(6),
   },
   title: {
-    fontSize: 22,
-    fontWeight: "800",
+    fontSize: theme.font.size["2xl"],
+    fontWeight: theme.font.weight.black,
     color: theme.colors.text,
-    marginBottom: 12,
+    letterSpacing: 0.3,
   },
-  section: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginVertical: 8,
-    color: theme.colors.text,
+  subtitle: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing(1),
+    lineHeight: 20,
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 8,
-    color: theme.colors.text,
+  sectionLabelWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing(2),
+    marginTop: theme.spacing(4),
+    marginBottom: theme.spacing(3),
   },
-  err: { color: theme.colors.danger, marginBottom: 8 },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
+  sectionBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sectionBadgeTxt: {
+    color: "#fff",
+    fontSize: theme.font.size.xs,
+    fontWeight: theme.font.weight.bold,
+  },
+  sectionLabelTxt: {
+    fontSize: theme.font.size.sm,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  countBadge: {
+    paddingHorizontal: theme.spacing(2),
+    paddingVertical: 2,
+    borderRadius: theme.radius.pill,
+    backgroundColor: theme.colors.primarySoft,
+  },
+  countBadgeTxt: {
+    fontSize: theme.font.size.xs,
+    fontWeight: theme.font.weight.bold,
+    color: theme.colors.primary,
+  },
+  emptyActions: {
+    alignItems: "center",
+    paddingVertical: theme.spacing(4),
+  },
+  emptyActionsIcon: { fontSize: 40, marginBottom: theme.spacing(3) },
+  emptyActionsTitle: {
+    fontSize: theme.font.size.lg,
+    fontWeight: theme.font.weight.bold,
     color: theme.colors.text,
-    marginBottom: 4,
+    marginBottom: theme.spacing(1),
+  },
+  emptyActionsTxt: {
+    fontSize: theme.font.size.base,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+  },
+  err: {
+    color: theme.colors.danger,
+    fontSize: theme.font.size.sm,
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    fontWeight: theme.font.weight.medium,
+  },
+  phaseLabel: {
+    fontSize: theme.font.size.base,
+    fontWeight: theme.font.weight.semibold,
+    color: theme.colors.text,
+    marginBottom: theme.spacing(2),
+    marginTop: theme.spacing(1),
+  },
+  editActions: {
+    flexDirection: "row",
+    gap: theme.spacing(2),
+    marginTop: theme.spacing(4),
   },
 });
