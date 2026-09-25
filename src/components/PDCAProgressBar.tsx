@@ -38,7 +38,7 @@ export function PDCAProgressBar({ phase, onSelect }: Props) {
             </Pressable>
           );
         })}
-        <View style={[styles.line, { left: "6%" , right: "6%" }]} pointerEvents="none" />
+        <View style={[styles.line, { left: "6%", right: "6%", pointerEvents: "none" }]} />
       </View>
       <View style={styles.labels}>
         {PHASES.map((p) => (

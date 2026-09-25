@@ -210,10 +210,9 @@ function ToastView({
 
   return (
     <Animated.View
-      pointerEvents="none"
       style={[
         styles.toast,
-        { backgroundColor: bg, opacity, transform: [{ translateY }] },
+        { backgroundColor: bg, opacity, transform: [{ translateY }], pointerEvents: "none" },
       ]}
     >
       <Text style={styles.toastTxt}>{state.message}</Text>
