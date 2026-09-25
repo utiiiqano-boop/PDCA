@@ -24,18 +24,26 @@ const Ctx = createContext<AuthCtx | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
 
+  // ── 1. Subscribe to auth ──────────────────────────────
   useEffect(() => {
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       setSession(data.session);
-      setLoading(false);
+      setAuthLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "TOKEN_REFRESH_FAILED" || event === "SIGNED_OUT") {
+        setSession(null);
+        setProfile(null);
+        supabase.auth.signOut().catch(() => {});
+        return;
+      }
       setSession(s);
     });
 
@@ -45,36 +53,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const loadProfile = async (userId: string): Promise<ProfileRow | null> => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    if (error || !data) return null;
-    return data as ProfileRow;
-  };
-
+  // ── 2. Load profile when session changes ─────────────
   useEffect(() => {
     if (!session?.user) {
       setProfile(null);
+      setProfileLoading(false);
       return;
     }
 
     let cancelled = false;
+    setProfileLoading(true);
 
     (async () => {
-      const p = await loadProfile(session.user.id);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
       if (cancelled) return;
-      if (!p) {
+
+      if (error || !data) {
         setProfile(null);
+        setProfileLoading(false);
         return;
       }
+
+      const p = data as ProfileRow;
       if (p.active === false) {
         await supabase.auth.signOut();
         return;
       }
+
       setProfile(p);
+      setProfileLoading(false);
     })();
 
     return () => {
@@ -82,22 +94,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [session?.user?.id]);
 
+  // ── 3. Manual refresh ─────────────────────────────────
   const refreshProfile = async () => {
     if (!session?.user) return;
-    const p = await loadProfile(session.user.id);
-    setProfile(p);
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+    setProfile(data as ProfileRow | null);
   };
 
   const value: AuthCtx = {
     session,
     profile,
-    loading,
+    // loading reste true tant que session ET profil ne sont pas prêts
+    loading: authLoading || profileLoading,
     refreshProfile,
     signIn: async (email, password) => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     },
     signUp: async (email, password, fullName, role, companyName) => {
@@ -105,11 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          data: {
-            full_name: fullName,
-            role,
-            company_name: companyName,
-          },
+          data: { full_name: fullName, role, company_name: companyName },
         },
       });
       if (error) throw error;
