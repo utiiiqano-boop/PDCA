@@ -1,11 +1,25 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { LANGUAGES } from "@/i18n/translations";
 import { theme } from "@/theme";
 
 export function LanguagePicker() {
-  const { language, setLanguage } = useTranslation();
+  const { language, setLanguage, t } = useTranslation();
+
+  const handleSelect = async (code: "fr" | "en" | "ar") => {
+    const { restartRequired } = await setLanguage(code);
+    if (restartRequired) {
+      const msg = t("language.restartMessage");
+      if (Platform.OS === "web") {
+        // eslint-disable-next-line no-alert
+        window.alert(`${t("language.restartRequired")}\n\n${msg}`);
+      } else {
+        Alert.alert(t("language.restartRequired"), msg);
+      }
+    }
+  };
+
   return (
     <View style={styles.wrap}>
       {LANGUAGES.map((l) => {
@@ -13,7 +27,7 @@ export function LanguagePicker() {
         return (
           <Pressable
             key={l.code}
-            onPress={() => setLanguage(l.code)}
+            onPress={() => handleSelect(l.code)}
             style={[styles.item, active && styles.itemActive]}
           >
             <Text style={styles.flag}>{l.flag}</Text>

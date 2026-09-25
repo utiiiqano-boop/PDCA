@@ -1,4 +1,11 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { I18nManager, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { translations, Language } from "./translations";
@@ -8,8 +15,8 @@ const STORAGE_KEY = "pdca.language";
 interface I18nCtx {
   language: Language;
   isRTL: boolean;
-  setLanguage: (lang: Language) => Promise<void>;
-  t: (path: string) => string;
+  setLanguage: (lang: Language) => Promise<{ restartRequired: boolean }>;
+  t: (path: string, vars?: Record<string, string | number>) => string;
 }
 
 const Ctx = createContext<I18nCtx | undefined>(undefined);
@@ -39,27 +46,67 @@ function resolve(obj: unknown, path: string): string {
   return typeof cur === "string" ? cur : path;
 }
 
+function interpolate(template: string, vars?: Record<string, string | number>): string {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (_, key) => {
+    const v = vars[key];
+    return v !== undefined ? String(v) : `{${key}}`;
+  });
+}
+
+/**
+ * Apply RTL direction:
+ *  - Web: sets document.documentElement.dir = "rtl" (CSS flips everything)
+ *  - Native: uses I18nManager, but a restart is required
+ */
+function applyRTL(isRTL: boolean): { restartRequired: boolean } {
+  if (Platform.OS === "web") {
+    if (typeof document !== "undefined") {
+      document.documentElement.dir = isRTL ? "rtl" : "ltr";
+      document.documentElement.lang = isRTL ? "ar" : "fr";
+    }
+    return { restartRequired: false };
+  }
+
+  // Native
+  const currentlyRTL = I18nManager.isRTL;
+  if (currentlyRTL !== isRTL) {
+    I18nManager.allowRTL(isRTL);
+    I18nManager.forceRTL(isRTL);
+    return { restartRequired: true };
+  }
+  return { restartRequired: false };
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [language, setLangState] = useState<Language>("fr");
 
   useEffect(() => {
     (async () => {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored === "fr" || stored === "en" || stored === "ar") {
-        setLangState(stored);
-      } else {
-        setLangState(detectDefault());
-      }
+      const initial =
+        stored === "fr" || stored === "en" || stored === "ar"
+          ? stored
+          : detectDefault();
+      setLangState(initial);
+      applyRTL(initial === "ar");
     })();
   }, []);
 
-  const setLanguage = useCallback(async (lang: Language) => {
-    setLangState(lang);
-    await AsyncStorage.setItem(STORAGE_KEY, lang);
-  }, []);
+  const setLanguage = useCallback(
+    async (lang: Language): Promise<{ restartRequired: boolean }> => {
+      setLangState(lang);
+      await AsyncStorage.setItem(STORAGE_KEY, lang);
+      return applyRTL(lang === "ar");
+    },
+    [],
+  );
 
   const t = useCallback(
-    (path: string) => resolve(translations[language], path),
+    (path: string, vars?: Record<string, string | number>) => {
+      const raw = resolve(translations[language], path);
+      return interpolate(raw, vars);
+    },
     [language],
   );
 

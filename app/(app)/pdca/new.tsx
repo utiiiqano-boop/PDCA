@@ -19,6 +19,7 @@ import { ActionCard } from "@/components/ActionCard";
 import { PDCAProgressBar } from "@/components/PDCAProgressBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/ui/UIProvider";
+import { useTranslation } from "@/i18n/I18nProvider";
 import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import {
   createPDCA,
@@ -53,6 +54,7 @@ const PRIORITIES: { value: Priority; label: string }[] = [
 export default function NewPDCA() {
   const { session } = useAuth();
   const { alert, toast } = useUI();
+  const { t: tr } = useTranslation();
   const { lines, departments, pilots, defectTypes, loading: optsLoading } =
     useCompanyOptions();
 
@@ -225,39 +227,37 @@ export default function NewPDCA() {
       >
         {/* ── Header ───────────────────────────────────── */}
         <View style={styles.header}>
-          <Text style={styles.title}>Nouveau PDCA</Text>
-          <Text style={styles.subtitle}>
-            Remplissez les informations du cycle Plan-Do-Check-Act
-          </Text>
+          <Text style={styles.title}>{tr("pdcaForm.title")}</Text>
+          <Text style={styles.subtitle}>{tr("pdcaForm.subtitle")}</Text>
         </View>
 
         {/* ── Section 1 : Informations générales ──────── */}
-        <SectionLabel index={1} label="Informations générales" />
+        <SectionLabel index={1} label={tr("pdcaForm.section1")} />
         <Card>
           <Input
-            label="Sujet / Non-conformité"
+            label={tr("pdcaForm.subject")}
             value={subject}
             onChangeText={setSubject}
             required
             error={errors.subject}
-            placeholder="Ex : Usure prématurée roulement F01"
+            placeholder={tr("pdcaForm.subjectPh")}
           />
           <Input
-            label="Description de l'écart"
+            label={tr("pdcaForm.description")}
             value={description}
             onChangeText={setDescription}
             multiline
-            placeholder="Décrivez le problème observé…"
-            hint="Optionnel — détail du constat"
+            placeholder={tr("pdcaForm.descriptionPh")}
+            hint={tr("pdcaForm.descriptionHint")}
             containerStyle={{ marginBottom: theme.spacing(3) }}
           />
         </Card>
 
         {/* ── Section 2 : Classement ─────────────────── */}
-        <SectionLabel index={2} label="Classement" />
+        <SectionLabel index={2} label={tr("pdcaForm.section2")} />
         <Card>
           <Select
-            label="Ligne / Poste"
+            label={tr("pdcaForm.line")}
             value={line}
             options={lineLabels}
             onChange={setLine}
@@ -266,7 +266,7 @@ export default function NewPDCA() {
           />
           {line === "Autre" && (
             <Input
-              label="Précisez la ligne"
+              label={tr("pdcaForm.lineOther")}
               value={lineOther}
               onChangeText={setLineOther}
               required
@@ -274,26 +274,26 @@ export default function NewPDCA() {
             />
           )}
           <Select
-            label="Département"
+            label={tr("pdcaForm.department")}
             value={department}
             options={deptLabels}
             onChange={setDepartment}
           />
           <Select
-            label="Type de défaut"
+            label={tr("pdcaForm.defectType")}
             value={defectType}
             options={defectLabels}
             onChange={setDefectType}
           />
           {defectType === "Autre" && (
             <Input
-              label="Précisez le type"
+              label={tr("pdcaForm.defectTypeOther")}
               value={defectOther}
               onChangeText={setDefectOther}
             />
           )}
           <Select
-            label="Priorité"
+            label={tr("pdcaForm.priority")}
             value={PRIORITIES.find((p) => p.value === priority)?.label ?? "Moyenne"}
             options={priorityLabels}
             onChange={(l) => setPriority(priorityFromLabel(l))}
@@ -303,7 +303,7 @@ export default function NewPDCA() {
         {/* ── Section 3 : Actions ────────────────────── */}
         <SectionLabel
           index={3}
-          label="Actions"
+          label={tr("pdcaForm.section3")}
           badge={actions.length > 0 ? String(actions.length) : undefined}
         />
 
@@ -311,9 +311,9 @@ export default function NewPDCA() {
           <Card>
             <View style={styles.emptyActions}>
               <Text style={styles.emptyActionsIcon}>📝</Text>
-              <Text style={styles.emptyActionsTitle}>Aucune action</Text>
+              <Text style={styles.emptyActionsTitle}>{tr("pdcaForm.noActions")}</Text>
               <Text style={styles.emptyActionsTxt}>
-                Ajoutez au moins une action pour ce PDCA.
+                {tr("pdcaForm.noActionsSub")}
               </Text>
             </View>
           </Card>
@@ -333,7 +333,7 @@ export default function NewPDCA() {
         {errors.actions ? <Text style={styles.err}>{errors.actions}</Text> : null}
 
         <Button
-          label="+ Ajouter une action"
+          label={tr("pdcaForm.addAction")}
           variant="secondary"
           onPress={() => setEditing(emptyAction())}
           style={{ marginTop: theme.spacing(1) }}
@@ -345,23 +345,23 @@ export default function NewPDCA() {
             <SectionLabel
               label={
                 actions.find((a) => a.tempId === editing.tempId)
-                  ? "Modifier l'action"
-                  : "Nouvelle action"
+                  ? tr("pdcaForm.modifyAction")
+                  : tr("pdcaForm.newAction")
               }
             />
             <Card>
               <Input
-                label="Action"
+                label={tr("pdcaForm.actionLabel")}
                 value={editing.action}
                 required
                 error={errors.action}
                 onChangeText={(t) => setEditing({ ...editing, action: t })}
                 multiline
-                placeholder="Décrivez l'action corrective…"
+                placeholder={tr("pdcaForm.actionPh")}
               />
 
               <Select
-                label="Pilote"
+                label={tr("pdcaForm.pilot")}
                 value={pilotIsOther ? "Autre" : editing.pilot_name}
                 options={pilotLabels}
                 required
@@ -379,7 +379,7 @@ export default function NewPDCA() {
               />
               {pilotIsOther && (
                 <Input
-                  label="Précisez le pilote"
+                  label={tr("pdcaForm.pilotOther")}
                   value={pilotOther}
                   onChangeText={(text) => {
                     setPilotOther(text);
@@ -393,7 +393,7 @@ export default function NewPDCA() {
               )}
 
               <DateField
-                label="Date d'ouverture"
+                label={tr("pdcaForm.openingDate")}
                 value={editing.opening_date}
                 required
                 onChange={(v) =>
@@ -401,13 +401,13 @@ export default function NewPDCA() {
                 }
               />
               <DateField
-                label="Date de fin"
+                label={tr("pdcaForm.dueDate")}
                 value={editing.due_date}
                 error={errors.due_date}
                 onChange={(v) => setEditing({ ...editing, due_date: v })}
               />
 
-              <Text style={styles.phaseLabel}>Phase PDCA</Text>
+              <Text style={styles.phaseLabel}>{tr("pdcaForm.phase")}</Text>
               <PDCAProgressBar
                 phase={editing.phase}
                 onSelect={(p: PDCAPhase) => setEditing({ ...editing, phase: p })}
@@ -422,7 +422,7 @@ export default function NewPDCA() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Button label="Valider l'action" onPress={upsertAction} />
+                  <Button label={tr("pdcaForm.validateAction")} onPress={upsertAction} />
                 </View>
               </View>
             </Card>
@@ -431,9 +431,9 @@ export default function NewPDCA() {
 
         {/* ── Actions finales ────────────────────────── */}
         <View style={{ height: theme.spacing(6) }} />
-        <Button label="Soumettre le PDCA" onPress={onSubmit} loading={submitting} />
+        <Button label={tr("pdcaForm.submit")} onPress={onSubmit} loading={submitting} />
         <View style={{ height: theme.spacing(2) }} />
-        <Button label="Réinitialiser" variant="secondary" onPress={resetAll} />
+        <Button label={tr("pdcaForm.reset")} variant="secondary" onPress={resetAll} />
       </ScrollView>
     </KeyboardAvoidingView>
   );
