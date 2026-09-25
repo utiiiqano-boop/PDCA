@@ -38,10 +38,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
-      if (event === "TOKEN_REFRESH_FAILED" || event === "SIGNED_OUT") {
+      if (event === "SIGNED_OUT") {
         setSession(null);
         setProfile(null);
-        supabase.auth.signOut().catch(() => {});
         return;
       }
       setSession(s);
