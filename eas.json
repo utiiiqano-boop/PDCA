@@ -38,6 +38,7 @@
       "node": "22.18.0"
     },
     "production-apk": {
+      "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
