@@ -130,6 +130,9 @@ const fr = {
     navigation: "Navigation",
   },
   dashboard: {
+    rateTitle: "Taux de réalisation",
+    rateActionsDone: "Actions terminées",
+    ratePdcaClosed: "PDCA clôturés",
     companySub: "Espace PDCA",
     logout: "Se déconnecter",
     noPdca: "Aucun PDCA",
@@ -785,6 +788,9 @@ const en: typeof fr = {
     navigation: "Navigation",
   },
   dashboard: {
+    rateTitle: "Completion rate",
+    rateActionsDone: "Completed actions",
+    ratePdcaClosed: "Closed PDCAs",
     companySub: "PDCA Space",
     logout: "Log out",
     noPdca: "No PDCA",
@@ -1437,6 +1443,9 @@ const ar: typeof fr = {
     navigation: "التنقل",
   },
   dashboard: {
+    rateTitle: "معدل الإنجاز",
+    rateActionsDone: "الإجراءات المكتملة",
+    ratePdcaClosed: "PDCA المغلقة",
     companySub: "مساحة PDCA",
     logout: "تسجيل الخروج",
     noPdca: "لا يوجد PDCA",

@@ -4,6 +4,7 @@ import { Redirect } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useNotificationTap } from "@/hooks/useNotificationTap";
 import { LoadingState } from "@/components/States";
 import { DrawerContent } from "@/components/DrawerContent";
@@ -14,6 +15,7 @@ export default function AppLayout() {
   const { t: tr, isRTL } = useTranslation();
   useNotifications();
   useNotificationTap();
+  const { data: sub, loading: subLoading } = useSubscription();
 
   if (loading) return <LoadingState />;
   if (!session) return <Redirect href="/(auth)/login" />;
@@ -23,6 +25,11 @@ export default function AppLayout() {
   // so no Drawer is rendered → no infinite loop.
   if (profile?.must_change_password) {
     return <Redirect href="/change-password" />;
+  }
+
+  // Subscription gate: expired → paywall
+  if (!subLoading && sub && sub.status === "expired") {
+    return <Redirect href="/paywall" />;
   }
 
   return (

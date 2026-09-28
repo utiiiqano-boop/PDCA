@@ -35,6 +35,8 @@ export default function RootLayout() {
             <StatusBar style="dark" />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
+              <Stack.Screen name="gate" />
+              <Stack.Screen name="paywall" />
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="(app)" />
             </Stack>

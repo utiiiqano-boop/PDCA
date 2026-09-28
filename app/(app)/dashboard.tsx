@@ -20,6 +20,7 @@ import { getCompany, CompanyRow } from "@/services/companiesService";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { theme } from "@/theme";
+import { TrialBanner } from "@/components/TrialBanner";
 
 function fmtDate(iso: string): string {
   try {
@@ -158,6 +159,8 @@ export default function Dashboard() {
         />
       }
     >
+      <TrialBanner />
+
       {/* ── Company header ─────────────────────────── */}
       <View style={styles.companyHeader}>
         {company?.logo_url ? (

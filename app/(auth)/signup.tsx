@@ -13,6 +13,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Select } from "@/components/Select";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/ui/UIProvider";
 import { supabase } from "@/lib/supabase";
@@ -76,12 +77,17 @@ export default function SignupScreen() {
 
     try {
       setLoading(true);
+
+      // Read the code stored by the gate
+      const gateCode = await AsyncStorage.getItem("pdca.gate.code");
+
       const result = await signUp(
         email.trim(),
         password,
         fullName.trim(),
         finalRole,
         companyName.trim(),
+        gateCode ?? undefined,
       );
 
       if (result.needsConfirmation) {

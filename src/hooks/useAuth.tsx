@@ -14,6 +14,7 @@ interface AuthCtx {
     fullName: string,
     role: string,
     companyName: string,
+    accessCode?: string,
   ) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -114,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     },
-    signUp: async (email, password, fullName, role, companyName) => {
+    signUp: async (email, password, fullName, role, companyName, accessCode) => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -123,7 +124,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
       if (error) throw error;
-      return { needsConfirmation: !data.session };
+
+      // If no session (email confirmation required), we can't resolve the
+      // company yet. The user will be attached at first login.
+      if (!data.session || !data.user) {
+        return { needsConfirmation: true };
+      }
+
+      // Resolve or create the company via RPC (SECURITY DEFINER)
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc(
+        "rpc_signup_resolve_company",
+        {
+          p_access_code: accessCode ?? null,
+          p_company_name: companyName,
+        },
+      );
+
+      if (rpcErr) {
+        console.warn("[signup] RPC ERROR:", {
+          code: rpcErr.code,
+          message: rpcErr.message,
+          details: rpcErr.details,
+          hint: rpcErr.hint,
+        });
+      } else {
+        console.log("[signup] RPC RESULT:", rpcRes);
+      }
+
+      return { needsConfirmation: false };
     },
     signOut: async () => {
       await supabase.auth.signOut();

@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
       return json({ ok: false, reason: "invalid_code" }, 200);
     }
 
-    if (data.status !== "active") {
+    if (data.status !== "active" && data.status !== "used") {
       return json({ ok: false, reason: `code_${data.status}` }, 200);
     }
 
