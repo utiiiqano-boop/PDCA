@@ -78,11 +78,17 @@ Deno.serve(async (req) => {
     let query = supabase
       .from("profiles")
       .select("id, expo_push_token, language")
-      .eq("company_id", notif.company_id)         // ← FILTRE ENTREPRISE
       .not("expo_push_token", "is", null);
 
-    if (notif.actor_id) {
-      query = query.neq("id", notif.actor_id);
+    if (notif.target_pilot_id) {
+      // Route to the specific assigned pilot only
+      query = query.eq("id", notif.target_pilot_id);
+    } else {
+      // Fallback: notify the whole company (minus the actor)
+      query = query.eq("company_id", notif.company_id);
+      if (notif.actor_id) {
+        query = query.neq("id", notif.actor_id);
+      }
     }
 
     const { data: profiles, error: pErr } = await query;
