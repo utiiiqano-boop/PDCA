@@ -92,6 +92,18 @@ export default function GateScreen() {
           ))}
         </View>
 
+        {showDemo ? (
+          <Pressable
+            onPress={fillDemo}
+            style={styles.demoBtn}
+            testID="gate-demo-btn"
+          >
+            <Text style={styles.demoTxt}>
+              🧪 Utiliser le code de démo ({DEMO_CODE})
+            </Text>
+          </Pressable>
+        ) : null}
+
         <View style={styles.formWrap}>
           <Text style={styles.label}>Code d'accès</Text>
           <TextInput
