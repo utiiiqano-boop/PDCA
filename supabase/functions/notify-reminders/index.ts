@@ -104,66 +104,36 @@ Deno.serve(async () => {
       );
     }
 
-    // 2. Group by (bucket, pilot_key)
-    const groups = new Map<
+// 2. Resolve profiles by pilot_name (pilot_id is a company_pilots.id, not profiles.id)
+    const { data: allProfs } = await supabase
+      .from("profiles")
+      .select("id, full_name, role, company_id, expo_push_token, language")
+      .not("expo_push_token", "is", null);
+
+    // 3. Group by (bucket, profile_id) — resolve via name first, fallback to company
+    const bucketsByProfile = new Map<
       string,
-      { bucket: Bucket; pilotId: string | null; companyId: string; pilotName: string; count: number }
+      { profileId: string; bucket: Bucket; count: number }
     >();
 
     for (const a of actions) {
       const bucket: Bucket =
         a.due_date === buckets.d3 ? "d3" : a.due_date === buckets.d2 ? "d2" : "d1";
-      const pilotKey = a.pilot_id ? `id:${a.pilot_id}` : `name:${a.company_id}:${a.pilot_name || "—"}`;
-      const key = `${bucket}::${pilotKey}`;
-      const existing = groups.get(key);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        groups.set(key, {
-          bucket,
-          pilotId: a.pilot_id ?? null,
-          companyId: a.company_id,
-          pilotName: a.pilot_name || "—",
-          count: 1,
-        });
+
+      // Find matching profile within the same company
+      const matches = (allProfs ?? []).filter(
+        (p) =>
+          p.company_id === a.company_id &&
+          (p.full_name === a.pilot_name || p.role === a.pilot_name),
+      );
+
+      for (const m of matches) {
+        const key = `${bucket}::${m.id}`;
+        const existing = bucketsByProfile.get(key);
+        if (existing) existing.count += 1;
+        else bucketsByProfile.set(key, { profileId: m.id, bucket, count: 1 });
       }
     }
-
-    // 3. Resolve profiles (with language + token)
-    const pilotIds = [...new Set(
-      [...groups.values()].filter((g) => g.pilotId).map((g) => g.pilotId as string),
-    )];
-
-    const profilesById = new Map<
-      string,
-      { full_name: string; token: string; language: string | null }
-    >();
-
-    if (pilotIds.length > 0) {
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("id, full_name, expo_push_token, language")
-        .in("id", pilotIds)
-        .not("expo_push_token", "is", null);
-      for (const p of (profs ?? []) as Array<{
-        id: string;
-        full_name: string;
-        expo_push_token: string;
-        language: string | null;
-      }>) {
-        profilesById.set(p.id, {
-          full_name: p.full_name,
-          token: p.expo_push_token,
-          language: p.language,
-        });
-      }
-    }
-
-    // Fallback map for name-based matching
-    const { data: allProfs } = await supabase
-      .from("profiles")
-      .select("full_name, role, company_id, expo_push_token, language")
-      .not("expo_push_token", "is", null);
 
     const messages: Array<{
       to: string;
@@ -173,39 +143,17 @@ Deno.serve(async () => {
       data: Record<string, unknown>;
     }> = [];
 
-    for (const g of groups.values()) {
-      if (g.pilotId) {
-        const prof = profilesById.get(g.pilotId);
-        if (!prof) continue;
-        const tt = T[langOf(prof.language)][g.bucket];
-        messages.push({
-          to: prof.token,
-          sound: "default",
-          title: tt.title,
-          body: tt.body(g.count),
-          data: { type: "reminder", bucket: g.bucket, count: g.count },
-        });
-      } else {
-        const matches = (allProfs ?? []).filter(
-          (p) =>
-            p.company_id === g.companyId &&
-            (p.full_name === g.pilotName || p.role === g.pilotName) &&
-            p.expo_push_token,
-        );
-        for (const p of matches as Array<{
-          expo_push_token: string;
-          language: string | null;
-        }>) {
-          const tt = T[langOf(p.language)][g.bucket];
-          messages.push({
-            to: p.expo_push_token,
-            sound: "default",
-            title: tt.title,
-            body: tt.body(g.count),
-            data: { type: "reminder", bucket: g.bucket, count: g.count },
-          });
-        }
-      }
+    for (const g of bucketsByProfile.values()) {
+      const prof = (allProfs ?? []).find((p) => p.id === g.profileId);
+      if (!prof || !prof.expo_push_token) continue;
+      const tt = T[langOf(prof.language)][g.bucket];
+      messages.push({
+        to: prof.expo_push_token,
+        sound: "default",
+        title: tt.title,
+        body: tt.body(g.count),
+        data: { type: "reminder", bucket: g.bucket, count: g.count },
+      });
     }
 
     if (messages.length === 0) {
