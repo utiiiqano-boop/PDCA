@@ -96,73 +96,84 @@ export function UIProvider({ children }: { children: React.ReactNode }) {
     <Ctx.Provider value={{ alert, confirm, toast }}>
       {children}
 
-      {/* ---------- Alert modal ---------- */}
-      <Modal
-        visible={!!alertState}
-        transparent
-        animationType="fade"
-        onRequestClose={closeAlert}
-      >
-        <Pressable style={styles.backdrop} onPress={closeAlert}>
-          <Pressable style={styles.dialog} onPress={() => {}}>
-            <Text style={styles.title}>{alertState?.title}</Text>
-            {alertState?.message ? (
-              <Text style={styles.message}>{alertState.message}</Text>
-            ) : null}
+      {/* ---------- Single Modal (alert OR confirm) ---------- */}
+      {alertState || confirmState ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          onRequestClose={() => {
+            if (alertState) closeAlert();
+            else if (confirmState) resolveConfirm(false);
+          }}
+        >
+          <Pressable
+            style={styles.backdrop}
+            onPress={() => {
+              if (alertState) closeAlert();
+              else if (confirmState) resolveConfirm(false);
+            }}
+          >
             <Pressable
-              onPress={closeAlert}
-              style={[styles.btn, styles.btnPrimary]}
-              accessibilityRole="button"
+              style={styles.dialog}
+              onStartShouldSetResponder={() => true}
+              onPress={(e) => {
+                // stopPropagation équivalent RNW
+                (e as unknown as { stopPropagation?: () => void }).stopPropagation?.();
+              }}
             >
-              <Text style={styles.btnPrimaryTxt}>
-                {alertState?.confirmLabel ?? "OK"}
-              </Text>
+              {alertState ? (
+                <>
+                  <Text style={styles.title}>{alertState.title}</Text>
+                  {alertState.message ? (
+                    <Text style={styles.message}>{alertState.message}</Text>
+                  ) : null}
+                  <Pressable
+                    onPress={closeAlert}
+                    style={[styles.btn, styles.btnPrimary]}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.btnPrimaryTxt}>
+                      {alertState.confirmLabel ?? "OK"}
+                    </Text>
+                  </Pressable>
+                </>
+              ) : confirmState ? (
+                <>
+                  <Text style={styles.title}>{confirmState.title}</Text>
+                  {confirmState.message ? (
+                    <Text style={styles.message}>{confirmState.message}</Text>
+                  ) : null}
+                  <View style={styles.btnRow}>
+                    <Pressable
+                      onPress={() => resolveConfirm(false)}
+                      style={[styles.btn, styles.btnGhost]}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.btnGhostTxt}>
+                        {confirmState.cancelLabel ?? "Annuler"}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => resolveConfirm(true)}
+                      style={[
+                        styles.btn,
+                        confirmState.destructive ? styles.btnDanger : styles.btnPrimary,
+                      ]}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.btnPrimaryTxt}>
+                        {confirmState.confirmLabel ?? "Confirmer"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </>
+              ) : null}
             </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* ---------- Confirm modal ---------- */}
-      <Modal
-        visible={!!confirmState}
-        transparent
-        animationType="fade"
-        onRequestClose={() => resolveConfirm(false)}
-      >
-        <Pressable style={styles.backdrop} onPress={() => resolveConfirm(false)}>
-          <Pressable style={styles.dialog} onPress={() => {}}>
-            <Text style={styles.title}>{confirmState?.title}</Text>
-            {confirmState?.message ? (
-              <Text style={styles.message}>{confirmState.message}</Text>
-            ) : null}
-            <View style={styles.btnRow}>
-              <Pressable
-                onPress={() => resolveConfirm(false)}
-                style={[styles.btn, styles.btnGhost]}
-                accessibilityRole="button"
-              >
-                <Text style={styles.btnGhostTxt}>
-                  {confirmState?.cancelLabel ?? "Annuler"}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => resolveConfirm(true)}
-                style={[
-                  styles.btn,
-                  confirmState?.destructive
-                    ? styles.btnDanger
-                    : styles.btnPrimary,
-                ]}
-                accessibilityRole="button"
-              >
-                <Text style={styles.btnPrimaryTxt}>
-                  {confirmState?.confirmLabel ?? "Confirmer"}
-                </Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      ) : null}
 
       {/* ---------- Toast ---------- */}
       {toastState ? (
