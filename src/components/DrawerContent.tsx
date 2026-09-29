@@ -74,6 +74,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
     ? [
         { label: t("nav.configuration"), href: "/(app)/company-options", match: "/company-options", icon: "⚙️" },
         { label: t("nav.users"), href: "/(app)/company-users", match: "/company-users", icon: "👥" },
+        { label: t("nav.premium"), href: "/(app)/premium", match: "/premium", icon: "⭐" },
         { label: t("nav.company"), href: "/(app)/company-settings", match: "/company-settings", icon: "🏢" },
       ]
     : [];

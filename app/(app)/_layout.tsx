@@ -49,6 +49,7 @@ export default function AppLayout() {
       <Drawer.Screen name="company-settings" options={{ title: tr("nav.company") }} />
       <Drawer.Screen name="company-options/index" options={{ title: tr("nav.configuration") }} />
       <Drawer.Screen name="company-users/index" options={{ title: tr("nav.users") }} />
+      <Drawer.Screen name="premium" options={{ title: tr("nav.premium") }} />
       <Drawer.Screen name="pdca/index" options={{ title: tr("nav.pdca") }} />
       <Drawer.Screen name="pdca/new" options={{ title: tr("nav.pdcaForm") }} />
       <Drawer.Screen
