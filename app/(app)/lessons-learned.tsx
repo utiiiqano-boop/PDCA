@@ -178,6 +178,8 @@ export default function LessonsLearnedScreen() {
           title={tr("lessonsScreen.empty")}
           subtitle={tr("lessonsScreen.emptySub")}
           icon="💡"
+          actionLabel={tr("lessonsScreen.addBtn")}
+          onAction={() => setShowForm(true)}
         />
       ) : (
         <FlatList<LessonLearned>

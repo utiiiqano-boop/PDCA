@@ -169,6 +169,8 @@ export default function TourUsineScreen() {
           title={tr("tourUsineScreen.empty")}
           subtitle={tr("tourUsineScreen.emptySub")}
           icon="🏭"
+          actionLabel={tr("tourUsineScreen.addBtn")}
+          onAction={() => setShowForm(true)}
         />
       ) : (
         <FlatList<FactoryTour>

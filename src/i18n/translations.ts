@@ -263,6 +263,7 @@ const fr = {
   },
   companyUsers: {
     noCompany: "Aucune entreprise associée.",
+    newUser: "Nouveau compte",
     actionImpossible: "Action impossible",
     cantChangeSelf: "Vous ne pouvez pas modifier votre propre statut admin.",
     cantRemoveLastAdmin: "Vous ne pouvez pas retirer le dernier administrateur.",
@@ -932,6 +933,7 @@ const en: typeof fr = {
   },
   companyUsers: {
     noCompany: "No company linked.",
+    newUser: "New account",
     actionImpossible: "Action not allowed",
     cantChangeSelf: "You can't change your own admin status.",
     cantRemoveLastAdmin: "You can't remove the last administrator.",
@@ -1598,6 +1600,7 @@ const ar: typeof fr = {
   },
   companyUsers: {
     noCompany: "لا توجد شركة مرتبطة.",
+    newUser: "حساب جديد",
     actionImpossible: "إجراء غير ممكن",
     cantChangeSelf: "لا يمكنك تغيير حالة المسؤول الخاصة بك.",
     cantRemoveLastAdmin: "لا يمكنك إزالة آخر مسؤول.",

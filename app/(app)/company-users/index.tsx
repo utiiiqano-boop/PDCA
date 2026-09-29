@@ -207,6 +207,8 @@ export default function CompanyUsersScreen() {
           title={tr("companyUsers.noUser")}
           subtitle={tr("companyUsers.noUserSub")}
           icon="👥"
+          actionLabel={tr("companyUsers.newUser")}
+          onAction={() => setShowCreate(true)}
         />
       ) : (
         <FlatList<ProfileRow>

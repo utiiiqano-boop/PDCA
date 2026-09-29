@@ -6,6 +6,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -164,6 +165,8 @@ export default function PilotesScreen() {
           title={tr("pilotesScreen.empty")}
           subtitle={tr("pilotesScreen.emptySub")}
           icon="👤"
+          actionLabel={tr("pdcaList.new")}
+          onAction={() => router.push("/(app)/pdca/new")}
         />
       ) : (
         <FlatList<PilotSummary>
