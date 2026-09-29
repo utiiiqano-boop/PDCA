@@ -14,6 +14,7 @@ import { Button } from "@/components/Button";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { SkeletonList, SkeletonHeader } from "@/components/Skeleton";
+import { FadeIn } from "@/components/FadeIn";
 import { ExportButton } from "@/components/ExportButton";
 import { FilterBar, FilterState, applyFilters, defaultFilters } from "@/components/FilterBar";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
@@ -199,7 +200,7 @@ export default function PDCAList() {
               }}
             />
           }
-          renderItem={({ item }: { item: PDCAWithActions }) => {
+          renderItem={({ item, index }: { item: PDCAWithActions; index: number }) => {
             const doneCount = item.pdca_actions.filter(
               (a) => a.status === "COMPLETED",
             ).length;
@@ -207,7 +208,8 @@ export default function PDCAList() {
             const pct = totalActions > 0 ? Math.round((doneCount / totalActions) * 100) : 0;
 
             return (
-              <Link href={`/(app)/pdca/${item.id}`} asChild>
+              <FadeIn delay={Math.min(index * 50, 400)}>
+                <Link href={`/(app)/pdca/${item.id}`} asChild>
                 <Pressable>
                   <Card style={{ borderLeftWidth: 4, borderLeftColor: statusColor(item.status) }}>
                     {/* Header : ref + dot + statut */}
@@ -284,8 +286,9 @@ export default function PDCAList() {
                   </Card>
                 </Pressable>
               </Link>
+              </FadeIn>
             );
-          }}
+        }}
         />
     </View>
   );
