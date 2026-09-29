@@ -13,6 +13,7 @@ import { useRouter, usePathname } from "expo-router";
 import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/I18nProvider";
+import { useUnreadCount } from "@/hooks/useUnreadCount";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { theme } from "@/theme";
 
@@ -29,6 +30,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   const { profile } = useAuth();
   const { departments, loading } = useCompanyOptions();
   const { t } = useTranslation();
+  const { count: unreadCount } = useUnreadCount();
 
   const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
   const fullName = profile?.full_name ?? "";
@@ -105,6 +107,13 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             >
               {item.label}
             </Text>
+            {item.match === "/notifications" && unreadCount > 0 ? (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeTxt}>
+                  {unreadCount > 99 ? "99+" : String(unreadCount)}
+                </Text>
+              </View>
+            ) : null}
             {active ? <View style={styles.activeDot} /> : null}
           </Pressable>
         );
@@ -230,6 +239,22 @@ const styles = StyleSheet.create({
   itemIcon: { fontSize: 16, width: 22, textAlign: "center" },
   itemTxt: { flex: 1, fontSize: 14, color: theme.colors.text, fontWeight: "500" },
   itemTxtActive: { color: theme.colors.primary, fontWeight: "800" },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    backgroundColor: theme.colors.danger,
+    alignItems: "center",
+    justifyContent: "center",
+    marginStart: 6,
+  },
+  unreadBadgeTxt: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "900",
+    lineHeight: 12,
+  },
   activeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.colors.primary },
   footer: {
     flexDirection: "row",

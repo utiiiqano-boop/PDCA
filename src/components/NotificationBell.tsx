@@ -1,27 +1,18 @@
-import React, { useCallback, useState } from "react";
+import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { supabase } from "@/lib/supabase";
+import { useUnreadCount } from "@/hooks/useUnreadCount";
 import { theme } from "@/theme";
 
 export function NotificationBell() {
-  const [unread, setUnread] = useState(0);
+  const { count, refresh } = useUnreadCount();
 
-  const loadCount = useCallback(async () => {
-    try {
-      const { data } = await supabase.rpc("rpc_unread_notification_count");
-      setUnread(typeof data === "number" ? data : 0);
-    } catch {
-      setUnread(0);
-    }
-  }, []);
-
-  // Refresh on every screen focus
+  // Refresh immédiat quand on revient sur un écran
   useFocusEffect(
-    useCallback(() => {
-      loadCount();
-    }, [loadCount]),
+    React.useCallback(() => {
+      refresh();
+    }, [refresh]),
   );
 
   return (
@@ -30,12 +21,14 @@ export function NotificationBell() {
       hitSlop={12}
       style={styles.wrap}
       accessibilityRole="button"
-      accessibilityLabel="Notifications"
+      accessibilityLabel={`Notifications${count > 0 ? ` (${count} non lues)` : ""}`}
     >
       <Text style={styles.icon}>🔔</Text>
-      {unread > 0 ? (
+      {count > 0 ? (
         <View style={styles.badge}>
-          <Text style={styles.badgeTxt}>{unread > 99 ? "99+" : unread}</Text>
+          <Text style={styles.badgeTxt}>
+            {count > 99 ? "99+" : String(count)}
+          </Text>
         </View>
       ) : null}
     </Pressable>
@@ -53,22 +46,23 @@ const styles = StyleSheet.create({
   icon: { fontSize: 20 },
   badge: {
     position: "absolute",
-    top: 6,
-    right: 4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    paddingHorizontal: 4,
+    top: 4,
+    right: 2,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
     backgroundColor: theme.colors.danger,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: theme.colors.primary,
   },
   badgeTxt: {
     color: "#fff",
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "900",
-    lineHeight: 12,
+    lineHeight: 13,
+    textAlign: "center",
   },
 });
