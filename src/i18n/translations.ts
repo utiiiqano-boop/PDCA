@@ -208,6 +208,7 @@ const fr = {
   },
   pdcaList: {
     title: "Liste des PDCA",
+    new: "Nouveau PDCA",
     statTotal: "Total",
     exportBtn: "📊 Exporter la vue (7 colonnes)",
     hStatusShort: "Statut",
@@ -867,6 +868,7 @@ const en: typeof fr = {
   },
   pdcaList: {
     title: "PDCA list",
+    new: "New PDCA",
     statTotal: "Total",
     exportBtn: "📊 Export view (7 columns)",
     hStatusShort: "Status",
@@ -1523,6 +1525,7 @@ const ar: typeof fr = {
   },
   pdcaList: {
     title: "قائمة PDCA",
+    new: "PDCA جديد",
     statTotal: "الإجمالي",
     exportBtn: "📊 تصدير العرض (7 أعمدة)",
     hStatusShort: "الحالة",

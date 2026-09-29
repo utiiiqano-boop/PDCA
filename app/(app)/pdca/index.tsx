@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
@@ -156,19 +156,20 @@ export default function PDCAList() {
       <FilterBar value={filters} onChange={setFilters} />
 
       {/* ── Liste ────────────────────────────────────── */}
-      {filtered.length === 0 ? (
-        <EmptyState
-          title={tr("pdcaList.empty")}
-          subtitle={tr("pdcaList.emptySub")}
-          icon="📋"
-          actionLabel={tr("pdcaList.new")}
-          onAction={() => router.push("/(app)/pdca/new")}
-        />
-      ) : (
-        <FlatList<PDCAWithActions>
+      <FlatList<PDCAWithActions>
+          style={{ flex: 1 }}
           contentContainerStyle={styles.listContent}
           data={filtered}
           keyExtractor={(it: PDCAWithActions) => it.id}
+          ListEmptyComponent={
+            <EmptyState
+              title={tr("pdcaList.empty")}
+              subtitle={tr("pdcaList.emptySub")}
+              icon="📋"
+              actionLabel={tr("pdcaList.new")}
+              onAction={() => router.push("/(app)/pdca/new")}
+            />
+          }
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -243,7 +244,6 @@ export default function PDCAList() {
             );
           }}
         />
-      )}
     </View>
   );
 }
@@ -277,7 +277,7 @@ function MetaChip({ icon, label }: { icon: string; label: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.bg },
+  container: { flex: 1, height: '100%', backgroundColor: theme.colors.bg },
 
   // ── Header ────────────────────────────────────
   header: {
@@ -338,6 +338,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: theme.spacing(4),
     paddingBottom: 60,
+    flexGrow: 1,
   },
 
   // ── Card PDCA ─────────────────────────────────
