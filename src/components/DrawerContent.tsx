@@ -100,7 +100,16 @@ export function DrawerContent(props: DrawerContentComponentProps) {
             accessibilityRole="button"
             accessibilityLabel={item.label}
           >
-            {item.icon ? <Text style={styles.itemIcon}>{item.icon}</Text> : null}
+            {item.icon ? (
+              <View
+                style={[
+                  styles.itemIconWrap,
+                  active && styles.itemIconWrapActive,
+                ]}
+              >
+                <Text style={styles.itemIcon}>{item.icon}</Text>
+              </View>
+            ) : null}
             <Text
               style={[styles.itemTxt, active && styles.itemTxtActive]}
               numberOfLines={1}
@@ -210,34 +219,52 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
   },
-  section: { marginBottom: 4 },
+  section: {
+    marginBottom: 4,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: theme.colors.border,
+  },
   sectionTitle: {
     fontSize: 10,
     fontWeight: "800",
     color: theme.colors.textMuted,
     paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 8,
+    paddingTop: 12,
+    paddingBottom: 6,
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   item: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minHeight: 46,
-    gap: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    minHeight: 48,
+    gap: 14,
     borderStartWidth: 3,
     borderStartColor: "transparent",
+    marginHorizontal: 6,
+    borderRadius: 8,
   },
   itemPressed: { backgroundColor: "#f1f5f9" },
   itemActive: {
-    backgroundColor: theme.colors.primary + "0d",
+    backgroundColor: theme.colors.primary + "14",
     borderStartColor: theme.colors.primary,
   },
-  itemIcon: { fontSize: 16, width: 22, textAlign: "center" },
-  itemTxt: { flex: 1, fontSize: 14, color: theme.colors.text, fontWeight: "500" },
+  itemIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.neutralSoft,
+  },
+  itemIconWrapActive: {
+    backgroundColor: theme.colors.primary + "22",
+  },
+  itemIcon: { fontSize: 16, textAlign: "center" },
+  itemTxt: { flex: 1, fontSize: 14, color: theme.colors.text, fontWeight: "600" },
   itemTxtActive: { color: theme.colors.primary, fontWeight: "800" },
   unreadBadge: {
     minWidth: 20,
