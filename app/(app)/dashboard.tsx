@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { theme } from "@/theme";
 import { TrialBanner } from "@/components/TrialBanner";
+import { GettingStarted } from "@/components/GettingStarted";
 
 function fmtDate(iso: string): string {
   try {
@@ -160,6 +161,7 @@ export default function Dashboard() {
       }
     >
       <TrialBanner />
+      <GettingStarted />
 
       {/* ── Company header ─────────────────────────── */}
       <View style={styles.companyHeader}>
