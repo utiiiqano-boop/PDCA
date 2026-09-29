@@ -1,8 +1,11 @@
 import React from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { theme } from "@/theme";
 import { useTranslation } from "@/i18n/I18nProvider";
 
+// ─────────────────────────────────────────────
+// LoadingState
+// ─────────────────────────────────────────────
 export function LoadingState({ label }: { label?: string }) {
   const { t: tr } = useTranslation();
   return (
@@ -13,15 +16,25 @@ export function LoadingState({ label }: { label?: string }) {
   );
 }
 
+// ─────────────────────────────────────────────
+// EmptyState (enrichi)
+// ─────────────────────────────────────────────
+interface EmptyStateProps {
+  title: string;
+  subtitle?: string;
+  icon?: string;
+  /** Optional CTA */
+  actionLabel?: string;
+  onAction?: () => void;
+}
+
 export function EmptyState({
   title,
   subtitle,
   icon,
-}: {
-  title: string;
-  subtitle?: string;
-  icon?: string;
-}) {
+  actionLabel,
+  onAction,
+}: EmptyStateProps) {
   return (
     <View style={styles.center}>
       <View style={styles.emptyIcon}>
@@ -29,19 +42,47 @@ export function EmptyState({
       </View>
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.txt}>{subtitle}</Text> : null}
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} style={styles.actionBtn}>
+          <Text style={styles.actionTxt}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
 
-export function ErrorState({ message }: { message: string }) {
+// ─────────────────────────────────────────────
+// ErrorState
+// ─────────────────────────────────────────────
+export function ErrorState({
+  message,
+  actionLabel,
+  onAction,
+}: {
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
   const { t: tr } = useTranslation();
   return (
     <View style={styles.center}>
-      <View style={[styles.emptyIcon, { backgroundColor: theme.colors.dangerSoft }]}>
+      <View
+        style={[
+          styles.emptyIcon,
+          { backgroundColor: theme.colors.dangerSoft },
+        ]}
+      >
         <Text style={styles.emptyIconTxt}>⚠️</Text>
       </View>
-      <Text style={[styles.title, { color: theme.colors.danger }]}>{tr("common.error")}</Text>
+      <Text style={[styles.title, { color: theme.colors.danger }]}>
+        {tr("common.error")}
+      </Text>
       <Text style={styles.txt}>{message}</Text>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} style={styles.actionBtn}>
+          <Text style={styles.actionTxt}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -81,5 +122,21 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     textAlign: "center",
     lineHeight: 20,
+    maxWidth: 340,
+  },
+  actionBtn: {
+    marginTop: theme.spacing(4),
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing(5),
+    paddingVertical: theme.spacing(3),
+    borderRadius: theme.radius.md,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionTxt: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 14,
   },
 });

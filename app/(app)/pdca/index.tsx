@@ -161,6 +161,8 @@ export default function PDCAList() {
           title={tr("pdcaList.empty")}
           subtitle={tr("pdcaList.emptySub")}
           icon="📋"
+          actionLabel={tr("pdcaList.new")}
+          onAction={() => router.push("/(app)/pdca/new")}
         />
       ) : (
         <FlatList<PDCAWithActions>
