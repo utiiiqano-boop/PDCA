@@ -45,6 +45,7 @@ export default function AppLayout() {
         drawerPosition: isRTL ? "right" : "left",
       }}
     >
+      <Drawer.Screen name="notifications" options={{ title: tr("nav.notifications"), drawerItemStyle: { display: "none" } }} />
       <Drawer.Screen name="dashboard" options={{ title: tr("nav.dashboard") }} />
       <Drawer.Screen name="company-settings" options={{ title: tr("nav.company") }} />
       <Drawer.Screen name="company-options/index" options={{ title: tr("nav.configuration") }} />
