@@ -22,6 +22,7 @@ import { useTranslation } from "@/i18n/I18nProvider";
 import { theme } from "@/theme";
 import { TrialBanner } from "@/components/TrialBanner";
 import { GettingStarted } from "@/components/GettingStarted";
+import { DashboardHero } from "@/components/DashboardHero";
 
 function fmtDate(iso: string): string {
   try {
@@ -163,34 +164,12 @@ export default function Dashboard() {
       <TrialBanner />
       <GettingStarted />
 
-      {/* ── Company header ─────────────────────────── */}
-      <View style={styles.companyHeader}>
-        {company?.logo_url ? (
-          <Image source={{ uri: company.logo_url }} style={styles.companyLogo} />
-        ) : (
-          <View style={[styles.companyLogo, styles.companyLogoFallback]}>
-            <Text style={styles.companyLogoText}>
-              {(company?.name ?? "?").charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.companyName} numberOfLines={1}>
-            {company?.name ?? "Chargement…"}
-          </Text>
-          <Text style={styles.companySub}>{tr("dashboard.companySub")}</Text>
-        </View>
-      </View>
-
-      {/* ── Greeting ───────────────────────────────── */}
-      <View style={styles.greetingWrap}>
-        <Text style={styles.greeting}>
-          {tr(`dashboard.${greetingKey()}`)}, {profile?.full_name?.split(" ")[0] ?? ""}
-        </Text>
-        <Text style={styles.greetingSub}>
-          {tr("dashboard.todayStatus")}
-        </Text>
-      </View>
+      {/* ── Hero card ──────────────────────────────── */}
+      <DashboardHero
+        greeting={tr(`dashboard.${greetingKey()}`)}
+        userName={profile?.full_name ?? ""}
+        companyName={company?.name ?? "Chargement…"}
+      />
 
       {/* ── KPI hero ───────────────────────────────── */}
       <Card style={styles.heroCard}>
@@ -264,10 +243,10 @@ export default function Dashboard() {
         </View>
 
         <View style={styles.miniRow}>
-          <MiniKpi n={stats.actionsCompleted} l="Terminées" color={theme.colors.success} />
+          <MiniKpi n={stats.actionsCompleted} l={tr("dashboard.completed")} color={theme.colors.success} />
           <MiniKpi n={stats.actionsInProgress} l={tr("dashboard.kpiInProgress")} color={theme.colors.warning} />
-          <MiniKpi n={stats.actionsOpen} l="Ouvertes" color={theme.colors.info} />
-          <MiniKpi n={stats.actionsCancelled} l="Annulées" color={theme.colors.textMuted} />
+          <MiniKpi n={stats.actionsOpen} l={tr("dashboard.open")} color={theme.colors.info} />
+          <MiniKpi n={stats.actionsCancelled} l={tr("dashboard.cancelled")} color={theme.colors.textMuted} />
         </View>
       </Card>
 

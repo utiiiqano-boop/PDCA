@@ -175,13 +175,10 @@ export default function NotificationsScreen() {
             const icon = EVENT_ICONS[item.event_type] ?? "🔔";
             return (
               <Pressable onPress={() => openNotification(item)}>
-                <Card style={[styles.card, !item.is_read && styles.cardUnread]}>
+                <Card style={[styles.card, ...(item.is_read ? [] : [styles.cardUnread])]}>
                   <View style={styles.row}>
                     <View
-                      style={[
-                        styles.iconWrap,
-                        !item.is_read && styles.iconWrapUnread,
-                      ]}
+                      style={[styles.iconWrap, ...(item.is_read ? [] : [styles.iconWrapUnread])]}
                     >
                       <Text style={styles.icon}>{icon}</Text>
                     </View>
