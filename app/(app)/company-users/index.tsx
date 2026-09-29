@@ -13,6 +13,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
+import { SkeletonList, SkeletonHeader } from "@/components/Skeleton";
 import { CreateUserModal } from "@/components/CreateUserModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -63,7 +64,14 @@ export default function CompanyUsersScreen() {
 
   if (!isAdmin) return <Redirect href="/(app)/dashboard" />;
   if (!companyId) return <ErrorState message={tr("companyUsers.noCompany")} />;
-  if (loading) return <LoadingState />;
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.bg }}>
+        <SkeletonHeader />
+        <SkeletonList count={4} />
+      </View>
+    );
+  }
   if (error) return <ErrorState message={error} />;
 
   const adminCount = users.filter((u) => u.is_admin).length;

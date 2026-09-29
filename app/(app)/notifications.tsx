@@ -13,6 +13,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState } from "@/components/States";
+import { SkeletonList, SkeletonHeader } from "@/components/Skeleton";
 import { useUI } from "@/ui/UIProvider";
 import { supabase } from "@/lib/supabase";
 import { theme } from "@/theme";
@@ -125,8 +126,9 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator color={theme.colors.primary} size="large" />
+      <View style={styles.container}>
+        <SkeletonHeader />
+        <SkeletonList count={5} />
       </View>
     );
   }

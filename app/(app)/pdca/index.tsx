@@ -13,6 +13,7 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { PriorityBadge, StatusBadge } from "@/components/Badges";
 import { EmptyState, ErrorState, LoadingState } from "@/components/States";
+import { SkeletonList, SkeletonHeader } from "@/components/Skeleton";
 import { ExportButton } from "@/components/ExportButton";
 import { FilterBar, FilterState, applyFilters, defaultFilters } from "@/components/FilterBar";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
@@ -85,7 +86,14 @@ export default function PDCAList() {
     return { total: items.length, open, progress, done, overdue };
   }, [items]);
 
-  if (loading) return <LoadingState />;
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <SkeletonHeader />
+        <SkeletonList count={4} />
+      </View>
+    );
+  }
   if (error) return <ErrorState message={error} />;
 
   return (
