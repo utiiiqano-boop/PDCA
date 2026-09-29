@@ -151,6 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("[signup] RPC RESULT:", rpcRes);
       }
 
+      // Refresh profile so is_admin / company_id are up to date
+      await refreshProfile();
       return { needsConfirmation: false };
     },
     signOut: async () => {
