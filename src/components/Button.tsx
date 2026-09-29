@@ -1,6 +1,7 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useRef } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Pressable,
   StyleSheet,
   Text,
@@ -37,42 +38,69 @@ export const Button = forwardRef<View, Props>(function Button(
   ref,
 ) {
   const isDisabled = disabled || loading;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const onPressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 40,
+      bounciness: 0,
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 6,
+    }).start();
+  };
 
   return (
-    <Pressable
-      ref={ref}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      disabled={isDisabled}
-      style={({ pressed }) => [
-        styles.base,
-        sizeStyles[size],
-        variantStyles[variant],
-        fullWidth && styles.fullWidth,
-        isDisabled && styles.disabled,
-        pressed && !isDisabled && styles.pressed,
-        style,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator
-          color={variant === "secondary" || variant === "ghost" ? theme.colors.primary : "#fff"}
-        />
-      ) : (
-        <Text
-          style={[
-            styles.txt,
-            sizeTextStyles[size],
-            variant === "secondary" || variant === "ghost"
-              ? styles.txtDark
-              : styles.txtLight,
-          ]}
-        >
-          {label}
-        </Text>
-      )}
-    </Pressable>
+    <Animated.View style={[{ transform: [{ scale }] }, fullWidth && styles.fullWidth]}>
+      <Pressable
+        ref={ref}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        disabled={isDisabled}
+        style={({ pressed }) => [
+          styles.base,
+          sizeStyles[size],
+          variantStyles[variant],
+          fullWidth && styles.fullWidth,
+          isDisabled && styles.disabled,
+          pressed && !isDisabled && styles.pressed,
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator
+            color={
+              variant === "secondary" || variant === "ghost"
+                ? theme.colors.primary
+                : "#fff"
+            }
+          />
+        ) : (
+          <Text
+            style={[
+              styles.txt,
+              sizeTextStyles[size],
+              variant === "secondary" || variant === "ghost"
+                ? styles.txtDark
+                : styles.txtLight,
+            ]}
+          >
+            {label}
+          </Text>
+        )}
+      </Pressable>
+    </Animated.View>
   );
 });
 
@@ -86,7 +114,7 @@ const styles = StyleSheet.create({
   },
   fullWidth: { width: "100%" },
   disabled: { opacity: 0.5 },
-  pressed: { opacity: 0.85 },
+  pressed: { opacity: 0.9 },
   txt: { fontWeight: theme.font.weight.semibold, letterSpacing: 0.2 },
   txtLight: { color: "#fff" },
   txtDark: { color: theme.colors.primary },
@@ -105,21 +133,13 @@ const sizeTextStyles = StyleSheet.create({
 });
 
 const variantStyles: Record<Variant, ViewStyle> = {
-  primary: {
-    backgroundColor: theme.colors.primary,
-  },
+  primary: { backgroundColor: theme.colors.primary },
   secondary: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.borderStrong,
   },
-  ghost: {
-    backgroundColor: "transparent",
-  },
-  danger: {
-    backgroundColor: theme.colors.danger,
-  },
-  success: {
-    backgroundColor: theme.colors.success,
-  },
+  ghost: { backgroundColor: "transparent" },
+  danger: { backgroundColor: theme.colors.danger },
+  success: { backgroundColor: theme.colors.success },
 };
