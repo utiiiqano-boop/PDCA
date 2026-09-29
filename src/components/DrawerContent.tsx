@@ -48,6 +48,7 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   };
 
   const navItems: Item[] = [
+    { label: t("nav.notifications"), href: "/(app)/notifications", match: "/notifications", icon: "🔔" },
     { label: t("nav.dashboard"), href: "/(app)/dashboard", match: "/dashboard", icon: "📊" },
     { label: t("nav.pdcaList"), href: "/(app)/pdca", match: "/pdca", icon: "📋" },
     { label: t("nav.pdcaForm"), href: "/(app)/pdca/new", match: "/pdca/new", icon: "➕" },

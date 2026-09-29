@@ -8,6 +8,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useNotificationTap } from "@/hooks/useNotificationTap";
 import { LoadingState } from "@/components/States";
 import { DrawerContent } from "@/components/DrawerContent";
+import { NotificationBell } from "@/components/NotificationBell";
 import { theme } from "@/theme";
 
 export default function AppLayout() {
@@ -39,6 +40,7 @@ export default function AppLayout() {
         headerStyle: { backgroundColor: theme.colors.primary },
         headerTintColor: "#fff",
         headerTitleStyle: { fontWeight: "700" },
+        headerRight: () => <NotificationBell />,
         swipeEnabled: false,
         swipeEdgeWidth: 0,
         drawerType: "front",
