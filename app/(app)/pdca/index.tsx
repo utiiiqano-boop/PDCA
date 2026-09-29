@@ -31,6 +31,17 @@ function fmtDate(iso: string): string {
   }
 }
 
+function statusColor(s: string): string {
+  switch (s) {
+    case "OPEN":        return theme.colors.info;
+    case "IN_PROGRESS": return theme.colors.warning;
+    case "COMPLETED":   return theme.colors.success;
+    case "OVERDUE":     return theme.colors.danger;
+    case "CANCELLED":   return theme.colors.textMuted;
+    default:            return theme.colors.primary;
+  }
+}
+
 export default function PDCAList() {
   const [items, setItems] = useState<PDCAWithActions[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,10 +201,18 @@ export default function PDCAList() {
             return (
               <Link href={`/(app)/pdca/${item.id}`} asChild>
                 <Pressable>
-                  <Card>
-                    {/* Header : ref + statut */}
+                  <Card style={{ borderLeftWidth: 4, borderLeftColor: statusColor(item.status) }}>
+                    {/* Header : ref + dot + statut */}
                     <View style={styles.cardHeader}>
-                      <Text style={styles.ref}>{item.reference}</Text>
+                      <View style={styles.refWrap}>
+                        <View
+                          style={[
+                            styles.statusDot,
+                            { backgroundColor: statusColor(item.status) },
+                          ]}
+                        />
+                        <Text style={styles.ref}>{item.reference}</Text>
+                      </View>
                       <StatusBadge status={item.status} />
                     </View>
 
@@ -213,6 +232,22 @@ export default function PDCAList() {
                     {/* Progress */}
                     {totalActions > 0 ? (
                       <View style={styles.progressWrap}>
+                        <View style={styles.progressHeader}>
+                          <Text style={styles.progressLabel}>Avancement</Text>
+                          <Text
+                            style={[
+                              styles.progressPct,
+                              {
+                                color:
+                                  pct === 100
+                                    ? theme.colors.success
+                                    : theme.colors.primary,
+                              },
+                            ]}
+                          >
+                            {pct}%
+                          </Text>
+                        </View>
                         <View style={styles.progressTrack}>
                           <View
                             style={[
@@ -228,7 +263,7 @@ export default function PDCAList() {
                           />
                         </View>
                         <Text style={styles.progressTxt}>
-                          {doneCount}/{totalActions} · {pct}%
+                          {doneCount} / {totalActions} action{totalActions > 1 ? "s" : ""} terminée{doneCount > 1 ? "s" : ""}
                         </Text>
                       </View>
                     ) : null}
@@ -236,7 +271,7 @@ export default function PDCAList() {
                     {/* Footer : priorité + date */}
                     <View style={styles.cardFooter}>
                       <PriorityBadge priority={item.priority} />
-                      <Text style={styles.date}>{fmtDate(item.created_at)}</Text>
+                      <Text style={styles.date}>📅 {fmtDate(item.created_at)}</Text>
                     </View>
                   </Card>
                 </Pressable>
@@ -348,7 +383,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: theme.spacing(2),
   },
-  ref: {
+  refWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+    minWidth: 0,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+    ref: {
     fontWeight: theme.font.weight.bold,
     color: theme.colors.primary,
     fontSize: theme.font.size.sm,
@@ -385,7 +432,24 @@ const styles = StyleSheet.create({
   },
 
   // ── Progress ──────────────────────────────────
-  progressWrap: {
+  progressHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: 6,
+  },
+  progressLabel: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  progressPct: {
+    fontSize: 14,
+    fontWeight: "900",
+  },
+    progressWrap: {
     marginBottom: theme.spacing(3),
   },
   progressTrack: {
