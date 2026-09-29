@@ -132,6 +132,10 @@ const fr = {
     navigation: "Navigation",
   },
   dashboard: {
+    kpiInProgress: "En cours",
+    pdcaList: "Liste PDCA",
+    pilots: "Pilotes",
+    charts: "Graphiques",
     rateTitle: "Taux de réalisation",
     rateActionsDone: "Actions terminées",
     ratePdcaClosed: "PDCA clôturés",
@@ -793,6 +797,10 @@ const en: typeof fr = {
     navigation: "Navigation",
   },
   dashboard: {
+    kpiInProgress: "In progress",
+    pdcaList: "PDCA list",
+    pilots: "Owners",
+    charts: "Charts",
     rateTitle: "Completion rate",
     rateActionsDone: "Completed actions",
     ratePdcaClosed: "Closed PDCAs",
@@ -1451,6 +1459,10 @@ const ar: typeof fr = {
     navigation: "التنقل",
   },
   dashboard: {
+    kpiInProgress: "قيد التنفيذ",
+    pdcaList: "قائمة PDCA",
+    pilots: "المسؤولون",
+    charts: "الرسوم البيانية",
     rateTitle: "معدل الإنجاز",
     rateActionsDone: "الإجراءات المكتملة",
     ratePdcaClosed: "PDCA المغلقة",
