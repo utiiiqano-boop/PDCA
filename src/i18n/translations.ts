@@ -166,7 +166,6 @@ const fr = {
     quickActions: "Actions rapides",
     recentPdca: "PDCA récents",
     seeAll: "Voir tout",
-    newPdca: "Nouveau PDCA",
     actions: "Actions",
   },
   pdcaForm: {
@@ -836,7 +835,6 @@ const en: typeof fr = {
     quickActions: "Quick actions",
     recentPdca: "Recent PDCAs",
     seeAll: "See all",
-    newPdca: "New PDCA",
     actions: "Actions",
   },
   pdcaForm: {
@@ -1503,7 +1501,6 @@ const ar: typeof fr = {
     quickActions: "إجراءات سريعة",
     recentPdca: "أحدث PDCA",
     seeAll: "عرض الكل",
-    newPdca: "PDCA جديد",
     actions: "الإجراءات",
   },
   pdcaForm: {
