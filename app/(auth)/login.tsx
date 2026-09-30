@@ -10,6 +10,8 @@ import {
 import { router } from "expo-router";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
+import { FadeInView } from "@/components/FadeInView";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { useUI } from "@/ui/UIProvider";
@@ -52,61 +54,59 @@ export default function LoginScreen() {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.hero}>
-          <View style={styles.logoBox}>
-            <Text style={styles.logoText}>P</Text>
+        <AnimatedLogo subtitle="Gestion industrielle" />
+
+        <FadeInView delay={150} offsetY={24}>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{tr("auth.login")}</Text>
+
+            <Input
+              label={tr("auth.email")}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              placeholder="vous@entreprise.com"
+              required
+            />
+            <Input
+              label={tr("auth.password")}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="••••••••"
+              required
+            />
+
+            {err ? <Text style={styles.err}>{err}</Text> : null}
+
+            <Button label={tr("auth.signIn")} onPress={onSubmit} loading={loading} />
+
+            <Text
+              style={styles.link}
+              onPress={() => router.push("/(auth)/forgot-password")}
+            >
+              {tr("auth.forgotPassword")}
+            </Text>
           </View>
-          <Text style={styles.title}>PDCA</Text>
-          <Text style={styles.subtitle}>Gestion industrielle</Text>
-        </View>
+        </FadeInView>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{tr("auth.login")}</Text>
-
-          <Input
-            label={tr("auth.email")}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="vous@entreprise.com"
-            required
-          />
-          <Input
-            label={tr("auth.password")}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholder="••••••••"
-            required
-          />
-
-          {err ? <Text style={styles.err}>{err}</Text> : null}
-
-          <Button label={tr("auth.signIn")} onPress={onSubmit} loading={loading} />
-
-          <Text
-            style={styles.link}
-            onPress={() => router.push("/(auth)/forgot-password")}
-          >
-            {tr("auth.forgotPassword")}
-          </Text>
-        </View>
-
-        <View style={styles.signupWrap}>
-          <Text style={styles.signupLabel}>{tr("auth.noAccount")}</Text>
-          <Button
-            label={tr("auth.createCompany")}
-            variant="secondary"
-            onPress={() => router.push("/(auth)/signup")}
-          />
-          <View style={{ height: 10 }} />
-          <Button
-            label="🔗 Rejoindre avec un code"
-            variant="secondary"
-            onPress={() => router.push("/(auth)/join")}
-          />
-        </View>
+        <FadeInView delay={300} offsetY={20}>
+          <View style={styles.signupWrap}>
+            <Text style={styles.signupLabel}>{tr("auth.noAccount")}</Text>
+            <Button
+              label={tr("auth.createCompany")}
+              variant="secondary"
+              onPress={() => router.push("/(auth)/signup")}
+            />
+            <View style={{ height: 10 }} />
+            <Button
+              label="🔗 Rejoindre avec un code"
+              variant="secondary"
+              onPress={() => router.push("/(auth)/join")}
+            />
+          </View>
+        </FadeInView>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -121,35 +121,6 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     width: "100%",
     alignSelf: "center",
-  },
-  hero: { alignItems: "center", marginBottom: theme.spacing(8) },
-  logoBox: {
-    width: 72,
-    height: 72,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: theme.spacing(4),
-    ...theme.shadow.md,
-  },
-  logoText: {
-    fontSize: 40,
-    fontWeight: theme.font.weight.black,
-    color: "#fff",
-    letterSpacing: 1,
-  },
-  title: {
-    fontSize: theme.font.size["3xl"],
-    fontWeight: theme.font.weight.black,
-    color: theme.colors.primary,
-    letterSpacing: 2,
-  },
-  subtitle: {
-    fontSize: theme.font.size.base,
-    color: theme.colors.textMuted,
-    marginTop: theme.spacing(1),
-    letterSpacing: 1,
   },
   card: {
     backgroundColor: theme.colors.surface,

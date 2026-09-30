@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { getCompany, uploadCompanyLogo } from "@/services/companiesService";
 import { PILOTS } from "@/constants/options";
 import { theme } from "@/theme";
+import { AnimatedLogo } from "@/components/AnimatedLogo";
 import { useTranslation } from "@/i18n/I18nProvider";
 
 export default function SignupScreen() {
@@ -137,8 +138,7 @@ export default function SignupScreen() {
       style={{ flex: 1 }}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>PDCA</Text>
-        <Text style={styles.subtitle}>{tr("signup.subtitle")}</Text>
+        <AnimatedLogo subtitle={tr("signup.subtitle")} />
 
         {/* ── Company section ─────────────────────────── */}
         <Text style={styles.section}>{tr("signup.sectionCompany")}</Text>
