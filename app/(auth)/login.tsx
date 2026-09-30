@@ -100,6 +100,12 @@ export default function LoginScreen() {
             variant="secondary"
             onPress={() => router.push("/(auth)/signup")}
           />
+          <View style={{ height: 10 }} />
+          <Button
+            label="🔗 Rejoindre avec un code"
+            variant="secondary"
+            onPress={() => router.push("/(auth)/join")}
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
