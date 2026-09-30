@@ -81,6 +81,7 @@ function applyRTL(isRTL: boolean): { restartRequired: boolean } {
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [language, setLangState] = useState<Language>("fr");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -91,6 +92,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
           : detectDefault();
       setLangState(initial);
       applyRTL(initial === "ar");
+      setReady(true);
     })();
   }, []);
 
@@ -128,6 +130,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   );
 
   const isRTL = language === "ar";
+
+  if (!ready) {
+    return null; // ou un <LoadingState /> si tu préfères
+  }
 
   return (
     <Ctx.Provider value={{ language, isRTL, setLanguage, t }}>
