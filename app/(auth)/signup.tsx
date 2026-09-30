@@ -23,7 +23,7 @@ import { theme } from "@/theme";
 import { useTranslation } from "@/i18n/I18nProvider";
 
 export default function SignupScreen() {
-  const { signUp, signOut } = useAuth();
+  const { signUp, signOut, refreshProfile } = useAuth();
   const { toast } = useUI();
   const { t: tr } = useTranslation();
 
@@ -32,7 +32,10 @@ export default function SignupScreen() {
   const otherLabel = tr("common.other");
   const vToL = (v: string | null) => (v === OTHER_SENTINEL ? otherLabel : v);
   const lToV = (l: string) => (l === otherLabel ? OTHER_SENTINEL : l);
-  const roleOptions = PILOTS.map((r) => (r === OTHER_SENTINEL ? otherLabel : r));
+  const roleOptions = React.useMemo(
+    () => PILOTS.map((r) => (r === OTHER_SENTINEL ? (otherLabel || "Autre") : r)),
+    [otherLabel],
+  );
 
   const [companyName, setCompanyName] = useState("");
   const [logoUri, setLogoUri] = useState<string | null>(null);

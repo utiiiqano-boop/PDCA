@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { useRouter, usePathname } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { useCompanyOptions } from "@/hooks/useCompanyOptions";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/I18nProvider";
@@ -27,7 +28,7 @@ interface Item {
 export function DrawerContent(props: DrawerContentComponentProps) {
   const router = useRouter();
   const path = usePathname();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const { departments, loading } = useCompanyOptions();
   const { t } = useTranslation();
   const { count: unreadCount } = useUnreadCount();
@@ -35,6 +36,12 @@ export function DrawerContent(props: DrawerContentComponentProps) {
   const isAdmin = (profile as { is_admin?: boolean } | null)?.is_admin === true;
   const fullName = profile?.full_name ?? "";
   const role = profile?.role ?? "";
+
+  useFocusEffect(
+    React.useCallback(() => {
+      refreshProfile?.().catch(() => {});
+    }, [refreshProfile]),
+  );
 
   const handlePress = (href: string) => {
     if (Platform.OS === "web" && typeof document !== "undefined") {

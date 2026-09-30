@@ -96,11 +96,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ── 3. Manual refresh ─────────────────────────────────
   const refreshProfile = async () => {
-    if (!session?.user) return;
+    // Always get the CURRENT session (avoids stale closure after signup)
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (!currentSession?.user) {
+      setProfile(null);
+      return;
+    }
     const { data } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", session.user.id)
+      .eq("id", currentSession.user.id)
       .single();
     setProfile(data as ProfileRow | null);
   };
@@ -152,6 +157,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Refresh profile so is_admin / company_id are up to date
+      // Wait a tick for auth to settle, then refresh
+      await new Promise((r) => setTimeout(r, 100));
       await refreshProfile();
       return { needsConfirmation: false };
     },

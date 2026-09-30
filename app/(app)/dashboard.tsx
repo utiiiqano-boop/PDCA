@@ -48,12 +48,23 @@ export default function Dashboard() {
   const { t: tr } = useTranslation();
   const [data, setData] = useState<PDCAWithActions[]>([]);
   const [company, setCompany] = useState<CompanyRow | null>(null);
+  const [companyLoading, setCompanyLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const companyId =
     (profile as { company_id?: string } | null)?.company_id ?? null;
+
+  const loadCompany = useCallback(async () => {
+    if (!companyId) return;
+    try {
+      const c = await getCompany(companyId);
+      setCompany(c);
+    } catch (e) {
+      console.warn("[dashboard] loadCompany failed:", e);
+    }
+  }, [companyId]);
 
   const loadData = useCallback(async () => {
     try {
@@ -74,12 +85,20 @@ export default function Dashboard() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [loadData]),
+      loadCompany();
+    }, [loadData, loadCompany]),
   );
 
   useEffect(() => {
-    if (!companyId) return;
-    getCompany(companyId).then(setCompany).catch(console.warn);
+    if (!companyId) {
+      setCompanyLoading(false);
+      return;
+    }
+    setCompanyLoading(true);
+    getCompany(companyId)
+      .then(setCompany)
+      .catch(console.warn)
+      .finally(() => setCompanyLoading(false));
   }, [companyId]);
 
   // ── 2. STATS ──────────────────────────────────────────
