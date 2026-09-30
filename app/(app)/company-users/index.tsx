@@ -1,13 +1,5 @@
 import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Modal, ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View, Platform } from "react-native";
 import { Redirect } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { Card } from "@/components/Card";
@@ -18,6 +10,9 @@ import { CreateUserModal } from "@/components/CreateUserModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useUI } from "@/ui/UIProvider";
+import * as Clipboard from "expo-clipboard";
+import { Linking } from "react-native";
+import { supabase } from "@/lib/supabase";
 import { useTranslation } from "@/i18n/I18nProvider";
 import {
   listCompanyUsers,
@@ -42,6 +37,8 @@ export default function CompanyUsersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [generatingInvite, setGeneratingInvite] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
 
@@ -61,6 +58,24 @@ export default function CompanyUsersScreen() {
       load().finally(() => setLoading(false));
     }, [load]),
   );
+
+  const generateInvite = async () => {
+    try {
+      setGeneratingInvite(true);
+      const { data, error: rpcErr } = await supabase.rpc("rpc_create_company_invite");
+      if (rpcErr) throw rpcErr;
+      const r = data as { ok: boolean; reason?: string; code?: string };
+      if (!r.ok) {
+        toast.error(r.reason ?? "Erreur");
+        return;
+      }
+      setInviteCode(r.code ?? null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    } finally {
+      setGeneratingInvite(false);
+    }
+  };
 
   if (!isAdmin) return <Redirect href="/(app)/dashboard" />;
   if (!companyId) return <ErrorState message={tr("companyUsers.noCompany")} />;
@@ -199,6 +214,13 @@ export default function CompanyUsersScreen() {
           label="+ Nouveau compte"
           onPress={() => setShowCreate(true)}
         />
+        <View style={{ height: 8 }} />
+        <Button
+          label="🔗 Générer un code d'invitation"
+          variant="secondary"
+          onPress={generateInvite}
+          loading={generatingInvite}
+        />
       </View>
 
       {/* List */}
@@ -293,6 +315,58 @@ export default function CompanyUsersScreen() {
       )}
 
       {/* Create user modal */}
+      {/* Invite code modal */}
+      {inviteCode ? (
+        <Modal
+          visible
+          transparent
+          animationType="fade"
+          onRequestClose={() => setInviteCode(null)}
+        >
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setInviteCode(null)}
+          >
+            <Pressable style={styles.modalSheet} onPress={() => {}}>
+              <Text style={styles.modalTitle}>🔗 Code d'invitation généré</Text>
+              <Text style={styles.modalSub}>
+                Envoyez ce code à un employé. Il l'utilisera sur la page d'accueil
+                pour rejoindre votre entreprise.
+              </Text>
+
+              <View style={styles.codeBox}>
+                <Text style={styles.codeTxt} selectable>
+                  {inviteCode}
+                </Text>
+              </View>
+
+              <Button
+                label="📋 Copier le code"
+                onPress={async () => {
+                  await Clipboard.setStringAsync(inviteCode);
+                  toast.success("Code copié");
+                }}
+              />
+              <View style={{ height: 8 }} />
+              <Button
+                label="📱 Envoyer par WhatsApp"
+                variant="secondary"
+                onPress={() => {
+                  const msg = `Bonjour, voici le code d'invitation pour rejoindre notre entreprise sur PDCA : ${inviteCode}`;
+                  Linking.openURL(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+                }}
+              />
+              <View style={{ height: 8 }} />
+              <Button
+                label="Fermer"
+                variant="secondary"
+                onPress={() => setInviteCode(null)}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
+
       <CreateUserModal
         visible={showCreate}
         onClose={() => setShowCreate(false)}
@@ -323,6 +397,48 @@ function Badge({
 }
 
 const styles = StyleSheet.create({
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15,23,42,0.55)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  modalSheet: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: theme.colors.text,
+    marginBottom: 6,
+  },
+  modalSub: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  codeBox: {
+    backgroundColor: theme.colors.primarySoft,
+    borderRadius: theme.radius.md,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 16,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: theme.colors.primary,
+  },
+  codeTxt: {
+    fontSize: 20,
+    fontWeight: "900",
+    color: theme.colors.primary,
+    letterSpacing: 2,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+  },
   container: { flex: 1, backgroundColor: theme.colors.bg },
 
   // ── Header ────────────────────────────────────
