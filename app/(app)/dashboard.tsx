@@ -187,6 +187,7 @@ export default function Dashboard() {
 
       {/* ── Hero card ──────────────────────────────── */}
       <DashboardHero
+        logoUrl={logoUrl}
         greeting={tr(`dashboard.${greetingKey()}`)}
         userName={profile?.full_name ?? ""}
         companyName={company?.name ?? "Chargement…"}

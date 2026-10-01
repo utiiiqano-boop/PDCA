@@ -1,9 +1,10 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { theme } from "@/theme";
 
 interface Props {
+  logoUrl?: string | null;
   greeting: string;
   userName: string;
   companyName: string;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function DashboardHero({
+  logoUrl,
   greeting,
   userName,
   companyName,
@@ -29,6 +31,19 @@ export function DashboardHero({
     >
       <View style={styles.row}>
         <View style={{ flex: 1 }}>
+          {logoUrl ? (
+            <Image
+              source={{ uri: logoUrl }}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={[styles.logo, styles.logoFallback]}>
+              <Text style={styles.logoFallbackTxt}>
+                {companyName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
           <Text style={styles.greeting}>{greeting},</Text>
           <Text style={styles.name} numberOfLines={1}>
             {firstName} 👋
@@ -54,6 +69,23 @@ export function DashboardHero({
 }
 
 const styles = StyleSheet.create({
+  logo: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: "#ffffff22",
+  },
+  logoFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff33",
+  },
+  logoFallbackTxt: {
+    color: "#fff",
+    fontSize: 22,
+    fontWeight: "900",
+  },
   hero: {
     marginHorizontal: theme.spacing(4),
     marginTop: theme.spacing(4),
