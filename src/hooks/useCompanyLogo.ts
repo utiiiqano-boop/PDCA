@@ -20,7 +20,7 @@ export function useCompanyLogo(companyId: string | null, storedUrl: string | nul
         // Extract bucket path from stored URL
         // e.g. ".../storage/v1/object/sign/company-logos/{id}/logo.png?token=..."
         const match = storedUrl?.match(/company-logos\/([^?]+)/);
-        const filePath = match ? match[1] : `${companyId}/logo.png`;
+        const filePath = (match?.[1] as string | undefined) ?? `${companyId}/logo.png`;
 
         // Signed URL valid for 1 year
         const { data, error } = await supabase.storage

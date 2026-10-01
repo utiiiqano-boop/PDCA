@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { theme } from "@/theme";
 
 interface Props {
   onDone: () => void;
@@ -9,44 +8,42 @@ interface Props {
 }
 
 const LETTERS = ["P", "D", "C", "A"];
+const GOLD = "#C9A961";
 
-export function AnimatedSplash({ onDone, duration = 5000 }: Props) {
-  // Letters : scale + opacity + rotate
+export function AnimatedSplash({ onDone, duration = 4200 }: Props) {
   const scales = useRef(LETTERS.map(() => new Animated.Value(0))).current;
   const opacities = useRef(LETTERS.map(() => new Animated.Value(0))).current;
   const rotations = useRef(LETTERS.map(() => new Animated.Value(-90))).current;
 
-  // Ring animation
   const ringScale = useRef(new Animated.Value(0)).current;
   const ringOpacity = useRef(new Animated.Value(0)).current;
+  const ringRotate = useRef(new Animated.Value(0)).current;
 
-  // Subtitle
   const subtitleOpacity = useRef(new Animated.Value(0)).current;
-
-  // Whole screen fade-out at the end
+  const goldLineWidth = useRef(new Animated.Value(0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     // 1. Letters pop one by one
     const letterAnims = LETTERS.map((_, i) =>
       Animated.sequence([
-        Animated.delay(i * 350),
+        Animated.delay(i * 320),
         Animated.parallel([
           Animated.timing(opacities[i]!, {
             toValue: 1,
-            duration: 260,
+            duration: 300,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }),
           Animated.spring(scales[i]!, {
             toValue: 1,
-            speed: 12,
-            bounciness: 14,
+            speed: 10,
+            bounciness: 10,
             useNativeDriver: true,
           }),
           Animated.timing(rotations[i]!, {
             toValue: 0,
-            duration: 420,
+            duration: 480,
             easing: Easing.out(Easing.back(2)),
             useNativeDriver: true,
           }),
@@ -54,41 +51,52 @@ export function AnimatedSplash({ onDone, duration = 5000 }: Props) {
       ]),
     );
 
-    // 2. Ring draws around after letters
+    // 2. Gold ring draws + rotates slightly
     const ringAnim = Animated.sequence([
-      Animated.delay(LETTERS.length * 350 + 200),
+      Animated.delay(LETTERS.length * 320 + 200),
       Animated.parallel([
         Animated.timing(ringOpacity, {
           toValue: 1,
-          duration: 300,
+          duration: 400,
           useNativeDriver: true,
         }),
         Animated.spring(ringScale, {
           toValue: 1,
-          speed: 8,
-          bounciness: 8,
+          speed: 6,
+          bounciness: 6,
           useNativeDriver: true,
         }),
       ]),
-      Animated.timing(ringOpacity, {
-        toValue: 0,
-        duration: 600,
-        delay: 400,
-        useNativeDriver: true,
-      }),
+      // Slow rotation
+      Animated.loop(
+        Animated.timing(ringRotate, {
+          toValue: 1,
+          duration: 8000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ),
     ]);
 
-    // 3. Subtitle
+    // 3. Subtitle + gold line
     const subtitleAnim = Animated.timing(subtitleOpacity, {
       toValue: 1,
-      duration: 500,
-      delay: LETTERS.length * 350 + 500,
+      duration: 600,
+      delay: LETTERS.length * 320 + 500,
       useNativeDriver: true,
     });
 
-    Animated.parallel([...letterAnims, ringAnim, subtitleAnim]).start();
+    const goldLineAnim = Animated.timing(goldLineWidth, {
+      toValue: 1,
+      duration: 700,
+      delay: LETTERS.length * 320 + 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    });
 
-    // 4. Screen fade-out before onDone
+    Animated.parallel([...letterAnims, ringAnim, subtitleAnim, goldLineAnim]).start();
+
+    // 4. Fade-out at the end
     const fadeTimer = setTimeout(() => {
       Animated.timing(screenOpacity, {
         toValue: 0,
@@ -104,7 +112,9 @@ export function AnimatedSplash({ onDone, duration = 5000 }: Props) {
     rotations,
     ringOpacity,
     ringScale,
+    ringRotate,
     subtitleOpacity,
+    goldLineWidth,
     screenOpacity,
     onDone,
     duration,
@@ -113,52 +123,83 @@ export function AnimatedSplash({ onDone, duration = 5000 }: Props) {
   return (
     <Animated.View style={[styles.root, { opacity: screenOpacity }]}>
       <LinearGradient
-        colors={[theme.colors.primary, "#062a4a", "#000814"]}
+        colors={["#0A1929", "#0d2c4d", "#0f4c81"]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 0.7, y: 1 }}
         style={styles.gradient}
       >
-        {/* Ring (cycle PDCA) */}
-        <Animated.View
-          style={[
-            styles.ring,
-            {
-              opacity: ringOpacity,
-              transform: [{ scale: ringScale }],
-            },
-          ]}
-        />
+        <View style={styles.centerWrap}>
+          {/* Gold ring */}
+          <Animated.View
+            style={[
+              styles.ring,
+              {
+                opacity: ringOpacity,
+                transform: [
+                  { scale: ringScale },
+                  {
+                    rotate: ringRotate.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0deg", "360deg"],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
 
-        {/* Letters */}
-        <View style={styles.lettersRow}>
-          {LETTERS.map((l, i) => (
-            <Animated.Text
-              key={l}
-              style={[
-                styles.letter,
-                {
-                  opacity: opacities[i]!,
-                  transform: [
-                    { scale: scales[i]! },
-                    {
-                      rotate: rotations[i]!.interpolate({
-                        inputRange: [-90, 0],
-                        outputRange: ["-90deg", "0deg"],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              {l}
-            </Animated.Text>
-          ))}
+          {/* Letters P D C A */}
+          <View style={styles.lettersRow}>
+            {LETTERS.map((l, i) => (
+              <Animated.Text
+                key={l}
+                style={[
+                  styles.letter,
+                  {
+                    opacity: opacities[i]!,
+                    transform: [
+                      { scale: scales[i]! },
+                      {
+                        rotate: rotations[i]!.interpolate({
+                          inputRange: [-90, 0],
+                          outputRange: ["-90deg", "0deg"],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                {l}
+              </Animated.Text>
+            ))}
+          </View>
+
+          {/* Subtitle */}
+          <Animated.Text
+            style={[styles.subtitle, { opacity: subtitleOpacity }]}
+          >
+            GESTION INDUSTRIELLE
+          </Animated.Text>
         </View>
 
-        {/* Subtitle */}
-        <Animated.Text style={[styles.subtitle, { opacity: subtitleOpacity }]}>
-          GESTION INDUSTRIELLE
-        </Animated.Text>
+        {/* Bottom gold line */}
+        <View style={styles.bottomWrap}>
+          <Animated.View
+            style={[
+              styles.goldLine,
+              {
+                transform: [
+                  {
+                    scaleX: goldLineWidth.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        </View>
       </LinearGradient>
     </Animated.View>
   );
@@ -171,32 +212,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  centerWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   ring: {
     position: "absolute",
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    borderWidth: 2,
-    borderColor: "#ffffff33",
+    width: 210,
+    height: 210,
+    borderRadius: 105,
+    borderWidth: 1.5,
+    borderColor: GOLD + "66",
+    borderStyle: "solid",
   },
   lettersRow: {
     flexDirection: "row",
-    gap: 6,
+    gap: 4,
   },
   letter: {
-    fontSize: 62,
+    fontSize: 68,
     fontWeight: "900",
-    color: "#fff",
+    color: "#FFFFFF",
     letterSpacing: 2,
-    textShadowColor: "#0f4c8155",
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 12,
+    textShadowColor: GOLD + "33",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 16,
   },
   subtitle: {
-    marginTop: 24,
-    fontSize: 12,
-    color: "#ffffffaa",
-    letterSpacing: 4,
+    marginTop: 36,
+    fontSize: 11,
+    color: GOLD,
+    letterSpacing: 6,
     fontWeight: "700",
+  },
+  bottomWrap: {
+    position: "absolute",
+    bottom: 56,
+    alignItems: "center",
+  },
+  goldLine: {
+    width: 60,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: GOLD,
   },
 });
