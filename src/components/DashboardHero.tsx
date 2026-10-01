@@ -30,20 +30,7 @@ export function DashboardHero({
       style={styles.hero}
     >
       <View style={styles.row}>
-        <View style={{ flex: 1 }}>
-          {logoUrl ? (
-            <Image
-              source={{ uri: logoUrl }}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={[styles.logo, styles.logoFallback]}>
-              <Text style={styles.logoFallbackTxt}>
-                {companyName.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
+        <View style={{ flex: 1, marginEnd: 12 }}>
           <Text style={styles.greeting}>{greeting},</Text>
           <Text style={styles.name} numberOfLines={1}>
             {firstName} 👋
@@ -52,6 +39,20 @@ export function DashboardHero({
             {companyName}
           </Text>
         </View>
+
+        {logoUrl ? (
+          <Image
+            source={{ uri: logoUrl }}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        ) : (
+          <View style={[styles.logo, styles.logoFallback]}>
+            <Text style={styles.logoFallbackTxt}>
+              {(companyName || "?").charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
       </View>
 
       {subscriptionLabel ? (
@@ -69,23 +70,6 @@ export function DashboardHero({
 }
 
 const styles = StyleSheet.create({
-  logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    marginBottom: 12,
-    backgroundColor: "#ffffff22",
-  },
-  logoFallback: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffffff33",
-  },
-  logoFallbackTxt: {
-    color: "#fff",
-    fontSize: 22,
-    fontWeight: "900",
-  },
   hero: {
     marginHorizontal: theme.spacing(4),
     marginTop: theme.spacing(4),
@@ -116,6 +100,22 @@ const styles = StyleSheet.create({
     color: "#ffffffaa",
     marginTop: 6,
     fontWeight: "600",
+  },
+  logo: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: "#ffffff22",
+  },
+  logoFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ffffff33",
+  },
+  logoFallbackTxt: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "900",
   },
   pill: {
     alignSelf: "flex-start",
