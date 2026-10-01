@@ -18,6 +18,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/States";
 import { listPDCA, PDCAWithActions } from "@/services/pdcaService";
 import { getCompany, CompanyRow } from "@/services/companiesService";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanyLogo } from "@/hooks/useCompanyLogo";
 import { useTranslation } from "@/i18n/I18nProvider";
 import { theme } from "@/theme";
 import { TrialBanner } from "@/components/TrialBanner";
@@ -55,6 +56,7 @@ export default function Dashboard() {
 
   const companyId =
     (profile as { company_id?: string } | null)?.company_id ?? null;
+  const logoUrl = useCompanyLogo(companyId, company?.logo_url ?? null);
 
   const loadCompany = useCallback(async () => {
     if (!companyId) return;
