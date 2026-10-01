@@ -8,9 +8,19 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { UIProvider } from "@/ui/UIProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AnimatedSplash } from "@/components/AnimatedSplash";
 import { configError } from "@/lib/supabase";
 
 export default function RootLayout() {
+  const [showSplash, setShowSplash] = React.useState(true);
+  if (showSplash) {
+    return (
+      <SafeAreaProvider>
+        <AnimatedSplash onDone={() => setShowSplash(false)} duration={4200} />
+      </SafeAreaProvider>
+    );
+  }
+
   if (configError) {
     return (
       <SafeAreaProvider>
